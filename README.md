@@ -23,6 +23,8 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 - [07 Switch Statements](#07-switch-statements)
 - [08 User Input](#08-user-input)
 - [09 Loops](#09-loops)
+- [10 — Arrays](#10--arrays)
+- [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
 ---
@@ -107,6 +109,18 @@ LearnPlaywright3x/
 │   ├── 61_Do_While.js                        # do-while retry example
 │   ├── 62_DoWhile_vs_While.js                # first-run behavior comparison
 │   └── 63_NestedFor_lOOP.js                  # nested loops and index pairs
+├── 10_chapter_Arrays/
+│   ├── 64_Array.js                          # indexing, .at(-1), length, negative index
+│   ├── 65_Array.js                          # length, out-of-bounds returns undefined
+│   ├── 66_Array_Creation.js                 # literal, new Array, Array.of, Array.from
+│   ├── 67_Array_Access_Modify.js            # bracket access, .at(), assign by index
+│   ├── 68_Arrays_Adding_Remove.js           # push/pop/unshift/shift/splice
+│   ├── 69_Array_REAL.js                     # real loop over a browser list
+│   ├── 70_Array_Searching.js                # indexOf, lastIndexOf, includes
+│   ├── 71_IQ.js                             # find, findIndex, findLast, findLastIndex
+│   └── 72_Array_Interate.js                 # for, for...of, forEach, entries, for...in
+├── MCQ/
+│   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
     ├── README.md                             # reusable prompt template for new IQ notes
     ├── Source_Code_ByteCODE_Binary_IQ.md      # source vs bytecode vs machine code
@@ -678,6 +692,83 @@ do {
 
 ---
 
+### 10 — Arrays
+
+**Concept:** An array is an ordered, zero-indexed list that holds many values in one variable. This chapter covers creation, access with brackets and `.at()`, adding/removing with `push`/`pop`/`unshift`/`shift`/`splice`, searching with `indexOf`/`includes`/`find`, and every way to iterate.
+
+**Why:** Test data is almost always a list, browsers to run, expected results, form rows, API records. Arrays are how you store and walk that data, so every loop, filter, and assertion over a collection starts here.
+
+**Q&A — why use this?**
+- **Q: What does negative indexing need?** A: Bracket access does NOT support negatives (`arr[-1]` is `undefined`); use `arr.at(-1)` to read from the end. `.at(-1)` is the last item, `.at(-2)` the second last.
+- **Q: How is `splice` different from `slice`?** A: `splice(start, deleteCount, ...items)` mutates the array in place and can remove and insert at once; `slice` returns a copy and never mutates. `push`/`pop` work at the end, `unshift`/`shift` at the start.
+- **Q: When do I use `find` vs `indexOf` vs `includes`?** A: `includes(value)` returns a boolean, `indexOf(value)` returns the first position (or `-1`), and `find(fn)` returns the first element matching a test function (`findIndex` returns its position).
+
+```mermaid
+flowchart TD
+    A["Array [a, b, c]"] --> Read{Reading}
+    Read -->|by position| Br["arr[0], arr.at&#40;-1&#41;"]
+    Read -->|search value| Se["indexOf, includes, find"]
+    A --> Write{Changing}
+    Write -->|end| E["push / pop"]
+    Write -->|start| S["unshift / shift"]
+    Write -->|anywhere| Sp["splice&#40;i, del, ...add&#41;"]
+    A --> It["Iterate: for, for...of, forEach, entries"]
+```
+
+```js
+let browsers = ["chrome", "firefox", "webkit"];
+
+// Access — brackets are zero-indexed; .at() allows negatives
+console.log(browsers[0]);      // "chrome"
+console.log(browsers.at(-1));  // "webkit"  (last)
+console.log(browsers[-1]);     // undefined (brackets: no negatives)
+
+// splice(start, deleteCount, ...itemsToAdd) — mutates in place
+let arr = [1, 2, 3, 5, 6];
+arr.splice(2, 1);          // remove 1 at index 2 -> [1, 2, 5, 6]
+arr.splice(2, 0, 99);      // insert 99 at index 2 -> [1, 2, 99, 5, 6]
+arr.splice(1, 2, 10, 20);  // replace 2 with 10,20 -> [1, 10, 20, 5, 6]
+
+// Search
+let results = ["pass", "fail", "pass", "error"];
+console.log(results.indexOf("fail"));   // 1
+console.log(results.includes("skip"));  // false
+
+// Find first match by a test function
+let nums = [10, 25, 30, 45];
+console.log(nums.find(n => n > 20));      // 25
+console.log(nums.findIndex(n => n > 20)); // 1
+
+// Iterate — for...of for values, entries() for index + value
+for (let [i, browser] of browsers.entries()) {
+    console.log(i, browser);
+}
+```
+
+| Method | Mutates? | Returns |
+|--------|:--------:|---------|
+| `push` / `unshift` | Yes | new length |
+| `pop` / `shift` | Yes | removed element |
+| `splice` | Yes | array of removed elements |
+| `slice` | No | shallow copy |
+| `indexOf` / `findIndex` | No | index or `-1` |
+| `find` | No | element or `undefined` |
+
+---
+
+## MCQ — Practice Questions
+
+**Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
+
+**Why:** Recall under exam-style pressure is different from reading, quick MCQs surface the gaps (like `push` returning the new length, not the array) before an interview does.
+
+**Q&A — why use this?**
+- **Q: What does `arr.push(4)` return?** A: The new **length** of the array, not the array itself, `[1,2,3].push(4)` returns `4`.
+- **Q: Why is `[9, 1, 2].sort()` result `1, 2, 9` here but risky in general?** A: Default `sort()` compares elements as **strings**, it happens to look right for single digits but `[9, 1, 20].sort()` gives `1, 20, 9`. Pass a comparator: `sort((a, b) => a - b)`.
+- **Q: How do I run these?** A: They are pen-and-paper style, predict the output first, then verify by pasting the snippet into `node`.
+
+---
+
 ## IQ_Notes — Reference Library
 
 Concept explainers, generated on demand via the prompt template in [`IQ_Notes/README.md`](IQ_Notes/README.md) — table breakdown, code walkthrough, pipeline diagram, TL;DR.
@@ -692,4 +783,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, backed by an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
