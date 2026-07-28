@@ -24,6 +24,13 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 - [08 User Input](#08-user-input)
 - [09 Loops](#09-loops)
 - [10 — Arrays](#10--arrays)
+  - [10.1 — Transforming: `map` & `filter`](#101--transforming-map--filter)
+  - [10.2 — Sorting](#102--sorting)
+  - [10.3 — Slicing](#103--slicing)
+  - [10.4 — Combining: `concat`, spread, `join`](#104--combining-concat-spread-join)
+  - [10.5 — Checking: `isArray`, `every`, `some`](#105--checking-isarray-every-some)
+  - [10.6 — Copying: shallow vs reference](#106--copying-shallow-vs-reference)
+  - [10.7 — Destructuring](#107--destructuring)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -118,7 +125,14 @@ LearnPlaywright3x/
 │   ├── 69_Array_REAL.js                     # real loop over a browser list
 │   ├── 70_Array_Searching.js                # indexOf, lastIndexOf, includes
 │   ├── 71_IQ.js                             # find, findIndex, findLast, findLastIndex
-│   └── 72_Array_Interate.js                 # for, for...of, forEach, entries, for...in
+│   ├── 72_Array_Interate.js                 # for, for...of, forEach, entries, for...in
+│   ├── 73_Arrays_Transform.js               # map (transform) vs filter (select)
+│   ├── 74_Sorting.js                        # default lexicographic sort, comparators, reverse
+│   ├── 75_Slicing.js                        # slice(start, end), negative indexes, no mutation
+│   ├── 76_ArrayConcat.js                    # concat, spread (...), join
+│   ├── 77_Array_Checking.js                 # Array.isArray, every, some, ASI semicolon trap
+│   ├── 78_Copy.js                           # shallow copy 4 ways vs reference assignment
+│   └── 79_Destructuring.js                  # array destructuring, rest, defaults, swap
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -756,6 +770,307 @@ for (let [i, browser] of browsers.entries()) {
 
 ---
 
+#### 10.1 — Transforming: `map` & `filter`
+
+**Concept:** `map(fn)` runs a function on every element and returns a **new array of the same length** (one output per input). `filter(fn)` runs a test on every element and returns a **new, usually shorter array** containing only the elements that passed.
+
+**Why:** Raw test data is rarely in the shape you need, `map` converts scores to Pass/Fail labels, and `filter` narrows a full result set down to just the failures you want to report.
+
+**Q&A — why use this?**
+- **Q: How do I pick between `map` and `filter`?** A: Ask what changes. Changing each **value** but keeping the count → `map`. Keeping values but dropping some **rows** → `filter`. Need both? Chain them: `.filter(...).map(...)`.
+- **Q: Do they mutate the original array?** A: No. Both return a brand-new array, the source is untouched, which is why you must assign the result (`let out = arr.map(...)`) or it is thrown away.
+- **Q: What if my `map` callback returns nothing?** A: You get an array of `undefined`. An arrow with braces needs an explicit `return`, `s => { s * 2 }` is a silent bug, use `s => s * 2`.
+
+```mermaid
+flowchart LR
+    A["[45, 82, 91, 60, 73]"] --> M["map&#40;s =&gt; s &gt; 70 ? 'Pass' : 'Fail'&#41;"]
+    A --> F["filter&#40;s =&gt; s &gt;= 70&#41;"]
+    M --> MR["['Fail','Pass','Pass','Fail','Pass'] — same length"]
+    F --> FR["[82, 91, 73] — shorter"]
+```
+
+```js
+let scores = [45, 82, 91, 60, 73];
+
+// map — transform each element, same length out
+let grades = scores.map(s => s > 70 ? "Pass" : "Fail");
+console.log(grades);  // ["Fail", "Pass", "Pass", "Fail", "Pass"]
+
+// filter — keep only what passes the test, shorter out
+let passing = scores.filter(s => s >= 70);
+console.log(passing); // [82, 91, 73]
+
+console.log(scores);  // [45, 82, 91, 60, 73] — original untouched
+
+// Chain them: narrow first, then reshape
+let report = scores.filter(s => s < 70).map(s => `FAIL(${s})`);
+console.log(report);  // ["FAIL(45)", "FAIL(60)"]
+```
+
+---
+
+#### 10.2 — Sorting
+
+**Concept:** `sort()` with no argument converts every element to a **string** and compares them character by character (lexicographic order), which is why `[10, 1, 21, 2].sort()` gives `[1, 10, 2, 21]`. Pass a comparator, `sort((a, b) => a - b)`, to sort numerically.
+
+**Why:** Sorting durations, response times, or numeric IDs with a bare `sort()` silently produces the wrong order, and the bug hides until a two-digit number shows up in the data.
+
+**Q&A — why use this?**
+- **Q: Why is `[10, 1, 21, 2].sort()` → `1, 10, 2, 21`?** A: Elements become `"10","1","21","2"` and are compared char by char, `'1'`(49) is less than `'2'`(50), so `"10"` lands before `"2"`. This is lexicographic (dictionary) order, not numeric.
+- **Q: How do I get ascending and descending?** A: `sort((a, b) => a - b)` for ascending, `sort((a, b) => b - a)` for descending. Negative return means `a` comes first.
+- **Q: Does `sort` mutate?** A: Yes, `sort` and `reverse` both change the array in place **and** return it. To keep the original, sort a copy: `[...arr].sort((a,b) => a-b)`. Use `toSorted()` (ES2023) for a non-mutating version.
+
+```mermaid
+flowchart TD
+    S["sort&#40;&#41;"] --> Q{Comparator passed?}
+    Q -->|No| L["Convert to string, compare chars — '10' &lt; '2'"]
+    Q -->|"&#40;a,b&#41; =&gt; a-b"| ASC["Numeric ascending"]
+    Q -->|"&#40;a,b&#41; =&gt; b-a"| DESC["Numeric descending"]
+    L --> W["[1, 10, 2, 21] — usually wrong for numbers"]
+    ASC --> R["[1, 2, 10, 21]"]
+    DESC --> R2["[21, 10, 2, 1]"]
+```
+
+```js
+let fruits = ["banana", "apple", "cherry"];
+fruits.sort();
+console.log(fruits);           // ["apple", "banana", "cherry"] — alphabetical is fine
+
+let nums = [10, 1, 21, 2];
+console.log([...nums].sort()); // [1, 10, 2, 21]  <-- string comparison, NOT numeric
+
+console.log([...nums].sort((a, b) => a - b)); // [1, 2, 10, 21]  ascending
+console.log([...nums].sort((a, b) => b - a)); // [21, 10, 2, 1]  descending
+
+nums.sort((a, b) => a - b);
+nums.reverse();                // mutates in place
+console.log(nums);             // [21, 10, 2, 1]
+
+// Human "natural" order for strings containing digits
+console.log(["file10", "file2", "file1"]
+    .sort(new Intl.Collator(undefined, { numeric: true }).compare));
+// ["file1", "file2", "file10"]
+```
+
+---
+
+#### 10.3 — Slicing
+
+**Concept:** `slice(start, end)` returns a **new array** copying elements from index `start` up to but **not including** `end`. It never mutates. Negative indexes count from the right, and omitting `end` runs to the end of the array.
+
+**Why:** Pagination, "top 3 failures", and "last 5 log lines" are all slices, and because `slice` copies instead of mutating, the original result set stays intact for the next assertion.
+
+**Q&A — why use this?**
+- **Q: Is `end` included?** A: No. `slice(1, 3)` returns indexes 1 and 2 only. Handy identity: the length of the result is `end - start`.
+- **Q: What do negative numbers do?** A: They count from the end, `slice(-2)` is the last two elements, `slice(-3)` the last three. `slice(0)` and `slice(-arr.length)` both copy the whole array.
+- **Q: Why did `slice(-3, -5)` return `[]`?** A: `-3` resolves to index 2 and `-5` to index 0, so `start` is after `end`. Whenever `start >= end`, `slice` returns an empty array, it never wraps around.
+
+```mermaid
+flowchart LR
+    A["[1, 2, 3, 4, 5]<br/>idx  0  1  2  3  4<br/>neg -5 -4 -3 -2 -1"] --> B["slice&#40;1, 3&#41; → [2, 3]"]
+    A --> C["slice&#40;2&#41; → [3, 4, 5]"]
+    A --> D["slice&#40;-2&#41; → [4, 5]"]
+    A --> E["slice&#40;-3, -5&#41; → [] — start after end"]
+```
+
+```js
+let arr = [1, 2, 3, 4, 5];
+
+console.log(arr.slice(1, 3));  // [2, 3]      end is EXCLUSIVE
+console.log(arr.slice(2));     // [3, 4, 5]   no end -> to the end
+console.log(arr.slice(-2));    // [4, 5]      last two
+console.log(arr.slice(-3));    // [3, 4, 5]   last three
+console.log(arr.slice(0));     // [1,2,3,4,5] full shallow copy
+console.log(arr.slice(-3, -5));// []          start(2) >= end(0)
+
+console.log(arr);              // [1,2,3,4,5] original never mutated
+```
+
+---
+
+#### 10.4 — Combining: `concat`, spread, `join`
+
+**Concept:** `concat` merges arrays into a new array, the spread operator `...` does the same thing with modern syntax and more flexibility, and `join(separator)` collapses an array down into a single string.
+
+**Why:** Test suites get assembled from parts (smoke + regression browsers), and failures get reported as one readable line, both are merge-then-stringify problems.
+
+**Q&A — why use this?**
+- **Q: `concat` or spread?** A: Same result for a simple merge. Spread wins when you mix in loose values or change the order: `[...a, "extra", ...b]`. `concat` wins when the source is not iterable-friendly or you are chaining.
+- **Q: What separator does `join()` use by default?** A: A comma. `join("")` glues with nothing, `join(" | ")` gives a readable report line. `null` and `undefined` elements become empty strings.
+- **Q: Do these mutate?** A: No, all three return something new. That also makes `arr.concat()` with zero arguments a quick shallow copy.
+
+```mermaid
+flowchart LR
+    A["a = [1, 2]"] --> C["concat / ...spread"]
+    B["b = [3, 4]"] --> C
+    C --> D["[1, 2, 3, 4]"]
+    D --> J["join&#40;' | '&#41;"]
+    J --> S["'1 | 2 | 3 | 4' — a String, not an Array"]
+```
+
+```js
+let a = [1, 2];
+let b = [3, 4];
+
+console.log(a.concat(b));      // [1, 2, 3, 4]
+console.log([...a, ...b]);     // [1, 2, 3, 4]   spread — modern way
+console.log([...a, 99, ...b]); // [1, 2, 99, 3, 4]  mix in loose values
+
+// join — array into one string
+console.log(["pass", "fail", "skip"].join(" | ")); // "pass | fail | skip"
+console.log(["a", "b"].join());                    // "a,b"  (comma default)
+
+console.log(a); // [1, 2] — nothing mutated
+```
+
+---
+
+#### 10.5 — Checking: `isArray`, `every`, `some`
+
+**Concept:** `Array.isArray(x)` is the only reliable array check (`typeof []` lies and says `"object"`). `every(fn)` returns `true` only if **all** elements pass, `some(fn)` returns `true` if **at least one** does.
+
+**Why:** Assertions are usually "all responses were under 2s" (`every`) or "at least one test failed" (`some`), and `isArray` guards code that assumes a list before it blows up on a string.
+
+**Q&A — why use this?**
+- **Q: Why not `typeof arr === "object"`?** A: Because it is true for `{}`, `null` and every other object. `Array.isArray([1,2,3])` → `true`, `Array.isArray("a")` → `false`. It also works across iframes, unlike `instanceof Array`.
+- **Q: What do `every` and `some` return on an empty array?** A: `every` returns `true` (vacuous truth, nothing failed) and `some` returns `false` (nothing passed). This bites when an empty result set silently "passes" an assertion.
+- **Q: Why did this file throw `Cannot read properties of undefined`?** A: A line ending in `)` with no semicolon, followed by a line starting with `[`, gets glued together by ASI into an index access. Always terminate statements that start with `[` or `(`.
+
+```mermaid
+flowchart TD
+    A["[80, 60, 85]"] --> E["every&#40;s =&gt; s &gt;= 70&#41;"]
+    A --> S["some&#40;s =&gt; s &lt; 70&#41;"]
+    E --> ER["false — 60 fails, stops early"]
+    S --> SR["true — 60 matches, stops early"]
+    G["Guard first"] --> IA["Array.isArray&#40;x&#41;"]
+    IA --> OK["true → safe to map/filter"]
+    IA --> NO["false → it is a string/object"]
+```
+
+```js
+console.log(Array.isArray([1, 2, 3])); // true
+console.log(Array.isArray("a"));       // false
+console.log(typeof [1, 2, 3]);         // "object"  <-- why isArray exists
+
+// every — ALL must pass
+console.log([80, 90, 85].every(s => s >= 70)); // true
+console.log([80, 60, 85].every(s => s >= 70)); // false
+
+// some — AT LEAST ONE must pass
+console.log([80, 60, 85].some(s => s < 70));   // true
+console.log([80, 90, 85].some(s => s < 70));   // false
+
+// Empty-array trap
+console.log([].every(s => s >= 70)); // true  — nothing failed
+console.log([].some(s => s >= 70));  // false — nothing passed
+```
+
+---
+
+#### 10.6 — Copying: shallow vs reference
+
+**Concept:** Spread `[...arr]`, `slice()`, `Array.from(arr)` and `concat()` all produce a **shallow copy**, a genuinely separate array. Plain assignment `let b = a` copies only the **reference**, so both names point at the same array.
+
+**Why:** Sharing a reference between tests means one test's `push` corrupts another's fixture data, the classic "my test passes alone but fails in the suite" bug.
+
+**Q&A — why use this?**
+- **Q: What makes `let copy = original` different from `[...original]`?** A: Assignment copies the pointer, not the data. `copy.push(99)` changes `original` too. Spread allocates a new array, so pushes stay local.
+- **Q: What does "shallow" mean?** A: Only the top level is copied. If elements are objects or nested arrays, both copies still share those inner references, `copy[0].name = "x"` is visible in the original.
+- **Q: How do I get a real deep copy?** A: `structuredClone(arr)` (built into Node 17+ and modern browsers) or `JSON.parse(JSON.stringify(arr))` for plain data, note the JSON trick loses `Date`, `undefined`, and functions.
+
+```mermaid
+flowchart TD
+    O["original = [1, 2, 3]"] --> R["let ref = original<br/>&#40;reference copy&#41;"]
+    O --> S["[...original] / slice&#40;&#41; / Array.from&#40;&#41; / concat&#40;&#41;<br/>&#40;shallow copy&#41;"]
+    R --> RB["ref.push&#40;99&#41; → original ALSO changes"]
+    S --> SB["copy.push&#40;99&#41; → original unchanged"]
+```
+
+```js
+let original = [1, 2, 3];
+
+// Four ways to shallow-copy — all independent arrays
+let copy1 = [...original];        // spread
+let copy2 = original.slice();     // slice with no args
+let copy3 = Array.from(original); // Array.from
+let copy4 = original.concat();    // concat with no args
+
+copy1.push(99);
+console.log(original); // [1, 2, 3]      untouched
+console.log(copy1);    // [1, 2, 3, 99]
+
+// Reference assignment — NOT a copy
+let ref = original;
+ref.push(91);
+console.log(original); // [1, 2, 3, 91]  both changed
+console.log(ref);      // [1, 2, 3, 91]  same array
+
+// Shallow is only one level deep
+let users = [{ name: "amit" }];
+let shallow = [...users];
+shallow[0].name = "raj";
+console.log(users[0].name);            // "raj"  — inner object still shared
+let deep = structuredClone(users);     // real deep copy
+deep[0].name = "neha";
+console.log(users[0].name);            // "raj"  — original safe
+```
+
+---
+
+#### 10.7 — Destructuring
+
+**Concept:** Array destructuring unpacks values into variables by **position** in one statement: `let [a, b] = [10, 20]`. A rest pattern `...rest` sweeps up everything left over into a new array, and `=` supplies defaults for missing slots.
+
+**Why:** It removes a wall of `arr[0]`, `arr[1]` lines, and it is how you read Playwright/Node APIs that hand back pairs, `for (let [i, v] of arr.entries())` and `const [res1, res2] = await Promise.all([...])`.
+
+**Q&A — why use this?**
+- **Q: Does it match by name or position?** A: Position. `let [first, second] = [10, 20]` gives `first = 10` regardless of naming, the variable name is arbitrary. (Object destructuring is the name-based one.)
+- **Q: Where can the rest element go?** A: Last only. `[...rest, last]` is a SyntaxError. Rest always collects the remainder into a new array, `[]` if nothing is left.
+- **Q: When do defaults kick in?** A: Only for `undefined`, not for `null` or `0`. `let [x = 1] = [null]` leaves `x` as `null`. Also, `let` cannot be redeclared in the same scope, so reusing the same variable names in a second destructuring throws `Identifier 'first' has already been declared`.
+
+```mermaid
+flowchart LR
+    A["[10, 20, 30, 40, 50]"] --> B["let [a, b, ...rest]"]
+    B --> C["a = 10 &#40;pos 0&#41;"]
+    B --> D["b = 20 &#40;pos 1&#41;"]
+    B --> E["rest = [30, 40, 50] &#40;new array&#41;"]
+    F["[10, 20]"] --> G["let [x = 1, y = 2, z = 99]"]
+    G --> H["x=10, y=20, z=99 &#40;default used&#41;"]
+```
+
+```js
+let [first, second, third] = [10, 20, 30];
+console.log(first, second, third); // 10 20 30
+
+// Rest — collects the remainder into a NEW array (must be last)
+let [a, b, ...rest] = [10, 20, 30, 40, 50];
+console.log(a, b, rest);           // 10 20 [30, 40, 50]
+
+// Defaults — only used when the slot is undefined
+let [x = 1, y = 2, z = 99] = [10, 20];
+console.log(x, y, z);              // 10 20 99
+
+// Skip elements with a hole
+let [, , thirdOnly] = [10, 20, 30];
+console.log(thirdOnly);            // 30
+
+// Swap without a temp variable
+let p = 1, q = 2;
+[p, q] = [q, p];
+console.log(p, q);                 // 2 1
+```
+
+| Task | Syntax |
+|------|--------|
+| Grab by position | `let [a, b] = arr` |
+| Skip a slot | `let [, , c] = arr` |
+| Collect the rest | `let [a, ...rest] = arr` |
+| Default value | `let [a = 0] = arr` |
+| Swap | `[a, b] = [b, a]` |
+| Index + value in a loop | `for (let [i, v] of arr.entries())` |
+
+---
+
 ## MCQ — Practice Questions
 
 **Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
@@ -783,4 +1098,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
