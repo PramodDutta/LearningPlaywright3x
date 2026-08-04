@@ -35,6 +35,11 @@ A learning repository tracking JavaScript fundamentals from first principles, al
   - [11.1 — The Four Function Types](#111--the-four-function-types)
   - [11.2 — Function Expressions & Arrow Functions](#112--function-expressions--arrow-functions)
   - [11.3 — IIFE (Immediately Invoked Function Expression)](#113--iife-immediately-invoked-function-expression)
+  - [11.4 — Spread & Rest Parameters](#114--spread--rest-parameters)
+  - [11.5 — `return` in Depth](#115--return-in-depth)
+  - [11.6 — `var` vs `let` vs `const`](#116--var-vs-let-vs-const)
+  - [11.7 — Hoisting](#117--hoisting)
+  - [11.8 — Temporal Dead Zone (TDZ)](#118--temporal-dead-zone-tdz)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -149,7 +154,20 @@ LearnPlaywright3x/
 │   ├── 86_Fn_Arrow.js                       # declaration → expression → arrow, same output
 │   ├── 87_Fn_Arrow.js                       # implicit vs block-bodied arrows
 │   ├── 88_REAL.js                           # same status-code check in all three styles
-│   └── 89.fn.js                             # IIFE — anonymous and arrow form
+│   ├── 89.fn.js                             # IIFE — anonymous and arrow form
+│   ├── 90_Spead_Fn.js                       # spread args in, rest params collect
+│   ├── 91_Return_Fn.js                      # if/else-if/else returns, no return → undefined
+│   ├── 92_Var_Let_Const.js                  # var function-scope vs let block-scope vs const
+│   ├── 93.Hoisting.js                       # memory-creation vs execution phase
+│   ├── 94_Var_Hoisting.js                   # var hoisted as undefined
+│   ├── 95_Fn_Hoisting.js                    # var hoisting inside a function scope
+│   ├── 96_Let_Hoisting.js                   # let hoisted but uninitialized → ReferenceError
+│   ├── 97_Let.js                            # var re-declaration inside a block
+│   ├── 98_TDZ.js                            # Temporal Dead Zone in a block
+│   ├── 99.IQ.js                             # var leaks out of the if block
+│   ├── 100_IQ.js                            # let shadowing + TDZ trap
+│   ├── 101.js                               # const for URLs and config, no reassignment
+│   └── 102_Hoisting_TDZ.md                  # full hoisting + TDZ reference guide
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -1292,6 +1310,272 @@ name1();
 
 ---
 
+#### 11.4 — Spread & Rest Parameters
+
+**Concept:** They look identical (`...`) but face opposite directions. **Spread** at the *call site* unpacks an array into individual arguments. **Rest** in the *parameter list* collects however many arguments arrive into one real array.
+
+**Why:** Test data lives in arrays but functions take arguments — spread bridges that gap, and rest lets one helper accept `hasError(404)` or `hasError(...twentyCodes)` without an overload per count.
+
+**Q&A — why use this?**
+- **Q: How do I tell spread from rest?** A: Position. `add(...nums)` at the call site is spread (array → arguments). `function f(...codes)` in the signature is rest (arguments → array).
+- **Q: What happens if the array is longer than the parameter list?** A: Extras are silently dropped. `add(a, b, c)` called with `[1, 2, 3, 5]` sees only `1, 2, 3` and returns `6` — no error, which makes it a quiet bug.
+- **Q: What's the gotcha?** A: Rest must be the **last** parameter, and there can only be one. `function f(...a, b)` is a `SyntaxError`. Unlike the old `arguments` object, a rest param is a genuine array, so `.some()` / `.map()` work directly.
+
+```mermaid
+flowchart LR
+    A["nums = [1, 2, 3]"] -->|"spread at CALL site"| B["add&#40;1, 2, 3&#41;"]
+    C["hasError&#40;200, 404&#41;"] -->|"rest in PARAM list"| D["codes = [200, 404] — real array"]
+    D --> E["codes.some&#40;c =&gt; c &gt;= 400&#41; → true"]
+```
+
+```js
+function add(a, b, c) {
+    return a + b + c;
+}
+
+let num = [1, 2, 3, 5];
+console.log(add(...num));   // 6 — spread unpacks; the extra 5 is dropped silently
+
+// Rest — collects any number of arguments into a real array
+function hasError(...codes) {
+    return codes.some(c => c >= 400);
+}
+
+let responseCodes  = [200, 201, 404];
+let responseCodes2 = [200, 201, 404, 500];
+console.log(hasError(...responseCodes));   // true
+console.log(hasError(200, 201));           // false
+console.log(hasError(...responseCodes2));  // true
+```
+
+| `...` where | Name | Direction |
+|-------------|------|-----------|
+| Call site — `f(...arr)` | Spread | Array → separate arguments |
+| Parameter list — `function f(...arr)` | Rest | Separate arguments → array |
+
+---
+
+#### 11.5 — `return` in Depth
+
+**Concept:** `return` does two things at once: it hands a value back to the caller **and** exits the function immediately. Any code after it in the same path never runs.
+
+**Why:** An `if / else if / else` ladder of returns is how one function maps an input onto labelled buckets (HTTP code → category), and the final `else` is what stops unmatched inputs silently becoming `undefined`.
+
+**Q&A — why use this?**
+- **Q: Why add a final `else` when the `if`s already cover the ranges?** A: Because they usually don't. Without it, `getStatus(301)` falls off the end and returns `undefined` — the `else` makes the gap explicit as `"unknown"`.
+- **Q: Can I return an array or object?** A: Yes, `return` takes any single value — `return [2, 2, 3, 5, 4]` or `return { name: "pramod" }`. To hand back several values, wrap them in one array or object.
+- **Q: What's the gotcha?** A: Calling `getStatus(200);` on its own line computes the string and throws it away. Assign it or log it — and never put code after `return`, it is unreachable.
+
+```mermaid
+flowchart TD
+    C["getStatus&#40;code&#41;"] --> A{"200–299?"}
+    A -->|yes| S["return 'Success'"]
+    A -->|no| B{"400–499?"}
+    B -->|yes| CE["return 'client error'"]
+    B -->|no| D{">= 500?"}
+    D -->|yes| SE["return 'server error'"]
+    D -->|no| U["else → return 'unknown'<br/>&#40;300s and &lt; 200 land here&#41;"]
+```
+
+```js
+function getStatus(code) {
+    if (code >= 200 && code < 300) {
+        return "Success";
+    } else if (code >= 400 && code < 500) {
+        return "client error";
+    } else if (code >= 500) {
+        return "server error";
+    } else {
+        return "unknown";     // 300s and anything < 200 — otherwise undefined
+    }
+}
+
+console.log(getStatus(200));  // "Success"
+console.log(getStatus(404));  // "client error"
+console.log(getStatus(301));  // "unknown"
+
+// No return statement → the caller gets undefined
+function logTest(name) {
+    console.log(`Running: ${name}`);
+}
+console.log(logTest("smoke suite")); // logs, then undefined
+
+// return accepts any single value — array, object, anything
+function getScores() { return [2, 2, 3, 5, 4]; }
+```
+
+---
+
+#### 11.6 — `var` vs `let` vs `const`
+
+**Concept:** `var` is **function-scoped** and re-declarable, `let` is **block-scoped** and re-assignable, `const` is block-scoped and cannot be re-assigned after its first value.
+
+**Why:** `var` leaking out of an `if` block is the source of the classic "why is my variable the wrong value 200 lines later?" bug, which is exactly why modern JS defaults to `const`, reaches for `let` when the value must change, and never uses `var`.
+
+**Q&A — why use this?**
+- **Q: Which do I pick?** A: `const` by default. Switch to `let` only when the variable genuinely gets reassigned (loop counters, accumulators). Never `var` in new code.
+- **Q: Does `const` mean the value is frozen?** A: No — only the **binding** is. `const a = [1,2,3]; a.push(10);` is legal because the array reference never changed. `a = [4]` throws `TypeError: Assignment to constant variable`.
+- **Q: What's the gotcha?** A: `let` cannot be re-declared in the same scope (`SyntaxError: Identifier 'a' has already been declared`), but it *can* be shadowed in an inner block — an inner `let b = 5` is a brand-new variable that vanishes when the block ends.
+
+```mermaid
+flowchart TD
+    V["var"] --> VF["Function scoped — leaks out of if/for blocks"]
+    V --> VR["Re-declarable ⚠️"]
+    L["let"] --> LB["Block scoped — dies at the closing brace"]
+    L --> LR["Re-assignable, NOT re-declarable"]
+    C["const"] --> CB["Block scoped"]
+    C --> CR["Binding locked — but object/array contents still mutable"]
+```
+
+```js
+let b = 20;                       // global scope
+console.log(b);                   // 20
+
+function printHello() {
+    let b = 30;                   // local — shadows the global
+    console.log(b);               // 30
+    if (true) {
+        let b = 5;                // block — shadows the local
+        console.log(b);           // 5
+    }
+    console.log("let ->", b);     // 30 — inner b is gone
+}
+printHello();
+console.log(b);                   // 20 — global never touched
+
+// var allows re-declaration; let does not
+var a = 11;
+var a = 100;                      // fine (and dangerous)
+// let x = 10; let x = 20;        // SyntaxError
+
+// const — binding locked, contents not
+const pi = 3.14;
+// pi = 3.14159;                  // TypeError: Assignment to constant variable
+const nums = [1, 2, 3];
+nums.push(10);                    // allowed — the reference never changed
+
+const prod_api_url = "https://app.vwo.com/#login";
+const qa_api_url   = "https://qa.vwo.com/#login";
+```
+
+| | `var` | `let` | `const` |
+|---|:---:|:---:|:---:|
+| Scope | Function | Block | Block |
+| Re-declare in same scope | Yes | No | No |
+| Re-assign | Yes | Yes | No |
+| Hoisted as | `undefined` | TDZ | TDZ |
+| Use in new code | Never | When it changes | Default |
+
+---
+
+#### 11.7 — Hoisting
+
+**Concept:** Before running a line of code, the JS engine does a **memory-creation pass** that registers every `var`, `let`, `const`, `function`, and `class` declaration in the scope. Only then does it execute top to bottom. Declarations are registered early, assignments are not.
+
+**Why:** It explains two things that otherwise look like magic: why a `function` can be called above its own definition, and why a `var` read before its line prints `undefined` instead of throwing.
+
+**Q&A — why use this?**
+- **Q: Does hoisting physically move my code?** A: No. Nothing is rearranged. It is a mental model for the two-phase engine — declarations are known before execution starts, so the code *behaves* as if they moved up.
+- **Q: Why is a `var` read before its line `undefined` rather than an error?** A: `var` is registered **and** initialised to `undefined` in the memory phase. The assignment stays put on its original line, so anything reading earlier sees `undefined`.
+- **Q: What's the gotcha?** A: `var` hoisting is scoped to the whole **function**, not the block, so `var` inside an `if` is visible to the entire function and can quietly overwrite an outer value of the same name.
+
+```mermaid
+flowchart TD
+    Src["Your source file"] --> P1["Phase 1 — Memory Creation<br/>scan all declarations, allocate"]
+    P1 --> V["var greeting = undefined"]
+    P1 --> F["function getUserStatus = full body"]
+    P1 --> L["let / const = registered but UNINITIALIZED &#40;TDZ&#41;"]
+    V --> P2["Phase 2 — Execution, line by line"]
+    F --> P2
+    L --> P2
+    P2 --> R["assignments happen where you wrote them"]
+```
+
+```js
+// var — hoisted AND initialised to undefined
+console.log(greeting);      // undefined  (not an error)
+var greeting = "Hello!";
+console.log(greeting);      // "Hello!"
+
+// Engine's view:
+// var greeting = undefined;   <-- phase 1
+// console.log(greeting);      <-- undefined
+// greeting = "Hello!";        <-- assignment stays in place
+
+// Function declarations hoist with their whole body — callable above their line
+getUserStatus();
+function getUserStatus() {
+    console.log(status_code);   // undefined — var hoisted inside this function
+    var status_code = "Active";
+    console.log(status_code);   // "Active"
+}
+
+// var leaks out of the block — the if body overwrites the outer value
+var a = "Pramod";
+if (true) {
+    console.log(a);   // "Pramod"
+    a = "temp";
+}
+console.log(a);       // "temp"  — same variable, function-scoped
+```
+
+Full walkthrough with class hoisting, interview traps, and phase diagrams: [`11_chapter_Funtions/102_Hoisting_TDZ.md`](11_chapter_Funtions/102_Hoisting_TDZ.md).
+
+---
+
+#### 11.8 — Temporal Dead Zone (TDZ)
+
+**Concept:** `let` and `const` *are* hoisted, but unlike `var` they are not given a value. From the top of the block until their declaration line they exist in an unusable state — the Temporal Dead Zone. Touching them there throws `ReferenceError: Cannot access 'x' before initialization`.
+
+**Why:** The TDZ turns the silent `undefined` bug into a loud crash at the exact line that caused it, which is the single strongest argument for `let`/`const` over `var`.
+
+**Q&A — why use this?**
+- **Q: If `let` throws, is it really hoisted?** A: Yes — and the error proves it. The message is "cannot access before initialization", not "is not defined". The engine already knows the name exists; it just refuses to hand back a value.
+- **Q: When does the TDZ end?** A: The instant execution reaches the declaration line. `let a = 10` initialises `a` and the zone closes for the rest of that block.
+- **Q: What's the gotcha?** A: Shadowing. `let a = 10` outside, then `console.log(a)` inside an `if` that later declares its own `let a = 20`, does **not** print `10` — the inner `a` shadows the outer one from the top of the block, so the read hits the inner TDZ and throws.
+
+```mermaid
+flowchart TD
+    B["Enter block { }"] --> C["a is created ✅ — but has NO value ❌"]
+    C --> Z["🚫 TDZ — any read throws ReferenceError"]
+    Z --> D["let a = 10;  ← declaration line"]
+    D --> OK["a = 10 ✅ — TDZ over, normal use from here"]
+```
+
+```js
+// var — no TDZ, just undefined
+console.log(greeting);   // undefined
+var greeting = "Hello!";
+
+// let — TDZ, throws instead
+// console.log(username);
+// let username = "Dutta";
+// ReferenceError: Cannot access 'username' before initialization
+
+// TDZ inside a block
+{
+    // console.log(a);   // ReferenceError — a exists but is uninitialized
+    let a = 10;
+    console.log(a);      // 10 — TDZ closed
+}
+
+// The shadowing trap — this does NOT print 10
+let a = 10;
+console.log(a);          // 10
+if (true) {
+    // console.log(a);   // ReferenceError — inner `a` shadows from the block top
+    let a = 20;
+    console.log(a);      // 20
+}
+```
+
+| Read before declaration | `var` | `let` / `const` |
+|---|:---:|:---:|
+| Result | `undefined` | `ReferenceError` |
+| Bug surfaces | Later, somewhere else | Immediately, on the exact line |
+
+---
+
 ### Functions in Real Test Code
 
 **Concept:** The same validation logic written as a declaration, an expression, and an arrow — proving the three forms are interchangeable for ordinary test helpers.
@@ -1364,4 +1648,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
