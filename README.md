@@ -40,6 +40,14 @@ A learning repository tracking JavaScript fundamentals from first principles, al
   - [11.6 — `var` vs `let` vs `const`](#116--var-vs-let-vs-const)
   - [11.7 — Hoisting](#117--hoisting)
   - [11.8 — Temporal Dead Zone (TDZ)](#118--temporal-dead-zone-tdz)
+  - [11.9 — Hoisting Trap: Declaration vs Expression](#119--hoisting-trap-declaration-vs-expression)
+- [12 — Scope & Closures](#12--scope--closures)
+  - [12.1 — Scope Chain](#121--scope-chain)
+  - [12.2 — Closures](#122--closures)
+  - [12.3 — Closures in Real Test Code](#123--closures-in-real-test-code)
+- [13 — Strings](#13--strings)
+  - [13.1 — Properties & Character Access](#131--properties--character-access)
+  - [13.2 — Searching & Checking](#132--searching--checking)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -167,7 +175,18 @@ LearnPlaywright3x/
 │   ├── 99.IQ.js                             # var leaks out of the if block
 │   ├── 100_IQ.js                            # let shadowing + TDZ trap
 │   ├── 101.js                               # const for URLs and config, no reassignment
-│   └── 102_Hoisting_TDZ.md                  # full hoisting + TDZ reference guide
+│   ├── 102_Hoisting_TDZ.md                  # full hoisting + TDZ reference guide
+│   └── 103_IQ.js                            # declaration hoists, expression does not
+├── 12_chapter_Fn_Closure/
+│   ├── 104_Scope_Fn.js                      # global vs local scope, inner sees outer
+│   ├── 105_Closure.js                       # returned function remembers its birthplace
+│   ├── 106_Closure_Remembers.js             # counter with private state (increment/get)
+│   ├── 107_Fn_Closure_REAL.js               # max-retry tracker per test
+│   └── 108_Fn_Simple.js                     # rate limiter returning true/false
+├── 13_String/
+│   ├── 109_String.js                        # quotes, template literals, multiline, String()
+│   ├── 110_String_Fn.js                     # length, index, .at(), charAt, charCodeAt
+│   └── 111.Str_Searching.js                 # includes, startsWith/endsWith, indexOf
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -1576,6 +1595,55 @@ if (true) {
 
 ---
 
+#### 11.9 — Hoisting Trap: Declaration vs Expression
+
+**Concept:** A `function` **declaration** is hoisted with its entire body, so it can be called above its own definition. A function **expression** assigned to `const`/`let` is not — only the binding is registered, and it sits in the TDZ until its line runs.
+
+**Why:** This is the single most-asked hoisting interview question, and in real code it decides whether a helper file's top-level call works or crashes on import.
+
+**Q&A — why use this?**
+- **Q: Why does `greet("Alice")` work on line 1 but `sayHi("Bob")` throws?** A: `greet` is a declaration — name *and* body are in memory before execution. `sayHi` is a `const` holding a function; the name is registered but uninitialised until its line.
+- **Q: `TypeError` or `ReferenceError`?** A: With `const`/`let` it is `ReferenceError: Cannot access 'sayHi' before initialization` (TDZ). You only get `TypeError: sayHi is not a function` when the expression is assigned to a **`var`**, because `var` is pre-filled with `undefined` and you end up calling `undefined()`.
+- **Q: What's the gotcha?** A: Arrow functions are expressions too, so `const f = () => {}` has exactly the same restriction. Define helpers above their first use, or use declarations when order-independence matters.
+
+```mermaid
+flowchart TD
+    P["Phase 1 — Memory Creation"] --> D["function greet&#40;&#41; { ... }<br/>name + FULL BODY hoisted ✅"]
+    P --> E["const sayHi = function &#40;&#41; { ... }<br/>name only, UNINITIALIZED 🚫 TDZ"]
+    P --> V["var sayHi = function &#40;&#41; { ... }<br/>name = undefined ⚠️"]
+    D --> OK["greet&#40;'Alice'&#41; above its line → works"]
+    E --> R["sayHi&#40;'Bob'&#41; above its line → ReferenceError"]
+    V --> T["sayHi&#40;'Bob'&#41; above its line → TypeError: not a function"]
+```
+
+```js
+// Declaration — callable before its own definition
+greet("Alice");                 // "Hi"  ✅ body was hoisted
+
+function greet(name) {
+    console.log('Hi');
+    return `Hello, ${name}!`;
+}
+
+// Expression on const — NOT callable before its line
+// sayHi("Bob");
+// ReferenceError: Cannot access 'sayHi' before initialization
+
+const sayHi = function (name) {
+    return `Hi, ${name}!`;
+};
+console.log(sayHi("Bob"));      // "Hi, Bob!"  ✅ after the line
+```
+
+| Form | Hoisted with body? | Call before its line |
+|------|:------------------:|----------------------|
+| `function f() {}` | Yes | Works |
+| `const f = function () {}` | No | `ReferenceError` (TDZ) |
+| `const f = () => {}` | No | `ReferenceError` (TDZ) |
+| `var f = function () {}` | Name only, `undefined` | `TypeError: f is not a function` |
+
+---
+
 ### Functions in Real Test Code
 
 **Concept:** The same validation logic written as a declaration, an expression, and an arrow — proving the three forms are interchangeable for ordinary test helpers.
@@ -1621,6 +1689,346 @@ console.log(isSuccess(204), isSuccess(300)); // true false
 
 ---
 
+### 12 — Scope & Closures
+
+**Concept:** A **closure** is a function that keeps access to the variables of the scope it was created in, even after that outer function has already finished and returned.
+
+**Why:** It is how JavaScript gets private state without classes — a retry counter, a rate limiter, or a config holder that no other code can reach in and corrupt.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: Any time a value must survive between calls but stay invisible to the rest of the file — attempt counters, caches, one-per-test fixtures.
+- **Q: What does it replace?** A: A module-level `let attempts = 0` that anything can overwrite, or a whole class written just to hold one private field.
+- **Q: What's the gotcha?** A: Each call to the outer function creates a **new, independent** closure. Two counters from `makeCounter()` do not share a count — and a closure held in memory keeps its variables alive, so a closure over a huge object leaks it.
+
+```mermaid
+flowchart TD
+    C["startBrowser&#40;&#41; called"] --> S["local: let name = 'edge'"]
+    S --> I["defines installBrowser&#40;&#41; — sees name"]
+    I --> R["returns installBrowser &#40;not called&#41;"]
+    R --> X["startBrowser&#40;&#41; finishes ❌ its scope should die"]
+    X --> K["but name is KEPT ALIVE by the closure ✅"]
+    K --> U["runTc&#40;&#41; → logs 'edge'"]
+```
+
+```js
+function startBrowser() {
+    let name = "edge";              // local to startBrowser
+
+    function installBrowser() {
+        console.log(name);          // closes over `name`
+    }
+
+    return installBrowser;          // returned, not called
+}
+
+const runTc = startBrowser();       // startBrowser has now finished
+runTc();                            // "edge" — the variable survived
+
+// installBrowser();                // ReferenceError — only reachable via runTc
+```
+
+---
+
+#### 12.1 — Scope Chain
+
+**Concept:** Scope decides which variables a line of code can see. An inner function can read everything in its own scope plus every enclosing scope out to global; the outer scope can never look inward.
+
+**Why:** It is the rule that makes closures possible, and it explains every `ReferenceError: x is not defined` you will hit — the name existed, just not on the path outward from where you asked.
+
+**Q&A — why use this?**
+- **Q: Which direction does lookup travel?** A: Outward only. `inner` → `outer` → global. The engine stops at the first match, so an inner `let x` shadows an outer `x` of the same name.
+- **Q: Why can't `outer()` read `inner`'s variables?** A: `inner`'s scope is created when it runs and destroyed when it returns. `console.log(y)` in `outer` throws `ReferenceError: y is not defined`.
+- **Q: What's the gotcha?** A: A function declared inside an `if` or `for` block is still block-scoped under `let`/`const` rules, and a `var` inside that block escapes to the whole function — mixing the two makes the chain hard to read.
+
+```mermaid
+flowchart TD
+    G["Global scope — let env = 'staging'"] --> O["outer&#40;&#41; scope — let x = 10"]
+    O --> I["inner&#40;&#41; scope — let y = 20"]
+    I -->|"can read"| O
+    O -->|"can read"| G
+    O -->|"CANNOT read y"| I
+```
+
+```js
+let env = "staging";              // global
+
+function setupConfig() {
+    let timeout = 3000;           // local
+    console.log(env);             // ✅ reaches outward to global
+    console.log(timeout);         // ✅ own scope
+}
+setupConfig();
+// console.log(timeout);          // ❌ ReferenceError — local died with the call
+
+function outer() {
+    let x = 10;
+
+    function inner() {
+        let y = 20;
+        console.log(x);           // ✅ 10 — inner reads outer
+    }
+
+    inner();
+    // console.log(y);            // ❌ ReferenceError — outer cannot read inner
+}
+outer();
+```
+
+---
+
+#### 12.2 — Closures
+
+**Concept:** Returning an **object of functions** instead of a single function gives several methods that all close over the *same* private variable — the standard way to expose a controlled API over hidden state.
+
+**Why:** The counter's `count` cannot be set to `-999` from outside; the only way to change it is through `increment()` / `decrement()`, which is exactly the encapsulation a class would give you, with less ceremony.
+
+**Q&A — why use this?**
+- **Q: Do the returned methods share state?** A: Yes — all three close over the same `count` from one `makeCounter()` call. Calling `makeCounter()` again produces a completely separate `count`.
+- **Q: How do I read the private value?** A: Only through a getter you chose to expose (`get()`). There is no `counter.count` — the variable is not a property, it lives in the closure.
+- **Q: What's the gotcha?** A: `increment()` alone is not callable — the methods only exist on the returned object, so it must be `counter.increment()`. Default parameters (`makeCounter(start = 0)`) set the initial private value.
+
+```mermaid
+flowchart TD
+    M["makeCounter&#40;0&#41;"] --> P["private: let count = 0"]
+    P --> O["returns { increment, decrement, get }"]
+    O --> A["increment&#40;&#41; → count++"]
+    O --> B["decrement&#40;&#41; → count--"]
+    O --> C["get&#40;&#41; → count"]
+    A --> P
+    B --> P
+    C --> P
+```
+
+```js
+function makeCounter(start = 0) {
+    let count = start;                       // private — no outside access
+    return {
+        increment() { count++; },
+        decrement() { count--; },
+        get()       { return count; }
+    };
+}
+
+let counter = makeCounter(0);
+counter.increment();
+counter.increment();
+counter.increment();
+console.log(counter.get());   // 3
+counter.decrement();
+console.log(counter.get());   // 2
+
+console.log(counter.count);   // undefined — count is not a property
+// increment();               // ReferenceError — only on the returned object
+
+let other = makeCounter(10);  // brand-new, independent count
+console.log(other.get());     // 10
+```
+
+---
+
+#### 12.3 — Closures in Real Test Code
+
+**Concept:** Two automation staples built on one closure each: a retry tracker that counts attempts per test run, and a rate limiter that returns `true` until a call budget is used up.
+
+**Why:** Both need a number that persists across calls but must not be a global anyone can reset — the exact problem closures solve.
+
+**Q&A — why use this?**
+- **Q: Why not a module-level `let attempts = 0`?** A: Every test file importing it would share (and stomp on) the same counter. `maxRetryTRacker(3)` hands each caller its own isolated count.
+- **Q: How do I reset the count?** A: You don't — you make a new one. Call the factory again for a fresh tracker; that is the intended reset.
+- **Q: What's the gotcha?** A: The counter increments on *every* call regardless of test name, so passing a different `testName` does not give a separate count. One tracker per test, or key the count by name inside the closure.
+
+```mermaid
+flowchart LR
+    F["maxRetryTRacker&#40;3&#41;"] --> C["private: attempts = 0"]
+    C --> T["returns tryAgain&#40;testName&#41;"]
+    T --> I["attempts++"]
+    I --> Q{"attempts &gt; max?"}
+    Q -->|no| A["'Attempt n/3 for Login'"]
+    Q -->|yes| E["'Login exceeded max retries &#40;3&#41;'"]
+```
+
+```js
+function maxRetryTRacker(max) {
+    let attempts = 0;                        // private, survives between calls
+    function tryAgain(testName) {
+        attempts++;
+        if (attempts > max) {
+            return `${testName} exceeded max retries (${max})`;
+        }
+        return `Attempt ${attempts}/${max} for ${testName}`;
+    }
+    return tryAgain;
+}
+
+let runTCRetry = maxRetryTRacker(3);
+console.log(runTCRetry("Login"));   // Attempt 1/3 for Login
+console.log(runTCRetry("Login"));   // Attempt 2/3 for Login
+console.log(runTCRetry("Login"));   // Attempt 3/3 for Login
+console.log(runTCRetry("Login"));   // Login exceeded max retries (3)
+
+// Same shape, boolean answer — a rate limiter
+function makeRateLimiter(limit) {
+    let call = 0;
+    return function check() {
+        call++;
+        return call <= limit;
+    };
+}
+
+let limiter = makeRateLimiter(3);
+console.log(limiter(), limiter(), limiter(), limiter()); // true true true false
+```
+
+---
+
+### 13 — Strings
+
+**Concept:** A string is an ordered, **immutable** sequence of characters. It can be written with single quotes, double quotes, or backticks — and only backticks (template literals) support `${...}` interpolation and real multiline text.
+
+**Why:** URLs, selectors, assertion messages, and API payloads are all strings, so choosing the right quote style and knowing that every "modifying" method returns a *new* string is day-one automation knowledge.
+
+**Q&A — why use this?**
+- **Q: When do I reach for backticks?** A: Any time a variable or expression goes inside the text (`` `Test completed in ${ms}ms` ``) or the string spans lines. Plain quotes for fixed literals.
+- **Q: What does `String(x)` do to non-strings?** A: Converts anything: `String(200)` → `"200"`, `String(true)` → `"true"`, `String(null)` → `"null"`, `String([1,2])` → `"1,2"` (array `join`, not JSON — so `[1,2]` becomes `"1,2"`, not `"[1,2]"`).
+- **Q: What's the gotcha?** A: Strings are immutable. `str[0] = "h"` silently does nothing. Every method (`toUpperCase`, `slice`, `replace`) returns a new string — assign the result or it is lost.
+
+```mermaid
+flowchart TD
+    Q{"Which quote?"} -->|"fixed text"| S["'single' or &quot;double&quot; — interchangeable"]
+    Q -->|"needs a variable"| T["`backtick ${expr}`"]
+    Q -->|"spans lines"| T
+    S --> I["immutable — methods return NEW strings"]
+    T --> I
+```
+
+```js
+let url     = "https://app.vwo.com";
+let status  = 'pass';
+let message = `Test completed in ${320}ms`;
+
+// Template literal — interpolation + expressions
+let name1 = "Alice";
+console.log(`Hello, ${name1}! 2 + 2 = ${2 + 2}`);  // Hello, Alice! 2 + 2 = 4
+
+// Multiline — only backticks keep the line breaks
+let report = `
+  Test: Login
+  Status: Pass
+  Duration: 320ms
+`;
+
+// Converting anything to a string
+console.log(String(200));     // "200"
+console.log(String(true));    // "true"
+console.log(String(null));    // "null"
+console.log(String([1, 2]));  // "1,2"  — joined, not JSON
+
+// Escapes: \n newline, \" literal quote
+console.log("line one\nline two");
+console.log('he said "hi"');
+```
+
+---
+
+#### 13.1 — Properties & Character Access
+
+**Concept:** `.length` counts characters (1-based count, 0-based indexes). Read one character with brackets `str[0]`, `charAt(0)`, or `.at(0)` — and only `.at()` accepts negative indexes counting from the end.
+
+**Why:** Trimming an ID off the end of a URL, checking a last character, or validating length limits all start with index access — and the off-by-one between `.length` and the last index is a permanent trap.
+
+**Q&A — why use this?**
+- **Q: What is the last index?** A: `str.length - 1`. For `"Hello, World!"` the length is `13` and the last index is `12`, which is why `.at(-1)` exists.
+- **Q: `str[0]` or `charAt(0)`?** A: Same result for valid indexes. They differ out of range — `str[99]` gives `undefined`, `str.charAt(99)` gives `""`. Neither accepts negatives; use `.at(-1)`.
+- **Q: What's the gotcha?** A: `charCodeAt(0)` returns the **numeric** character code, not the character — `"Hello".charCodeAt(0)` is `72` (ASCII `H`), useful for sorting and encoding checks.
+
+```mermaid
+flowchart LR
+    A["'Hello, World!' — length 13"] --> B["str[0] → 'H' &#40;index 0&#41;"]
+    A --> C["str[7] → 'W'"]
+    A --> D["str.at&#40;-1&#41; → '!' &#40;last&#41;"]
+    A --> E["str.charCodeAt&#40;0&#41; → 72 &#40;code, not char&#41;"]
+    A --> F["str[99] → undefined | charAt&#40;99&#41; → ''"]
+```
+
+```js
+let str = "Hello, World!";
+
+console.log(str.length);        // 13  — count, so last index is 12
+console.log(str[0]);            // "H"
+console.log(str[7]);            // "W"
+console.log(str.at(-1));        // "!"  last character
+console.log(str.at(-6));        // "W"  sixth from the end
+
+console.log(str.charAt(0));     // "H"
+console.log(str.charCodeAt(0)); // 72   ASCII code of "H"
+
+console.log(str[99]);           // undefined
+console.log(str.charAt(99));    // ""   empty string, not undefined
+
+// Immutable — this silently does nothing
+str[0] = "J";
+console.log(str);               // "Hello, World!"
+```
+
+| Access | Negative index? | Out of range |
+|--------|:---------------:|--------------|
+| `str[i]` | No | `undefined` |
+| `str.charAt(i)` | No | `""` |
+| `str.at(i)` | Yes | `undefined` |
+
+---
+
+#### 13.2 — Searching & Checking
+
+**Concept:** `includes` / `startsWith` / `endsWith` answer **yes or no**. `indexOf` / `lastIndexOf` answer **where**, returning a position or `-1` when there is no match.
+
+**Why:** Environment guards (`url.includes("staging")`), protocol checks (`startsWith("https")`), and pulling a query string out of a URL are all one of these five calls.
+
+**Q&A — why use this?**
+- **Q: Boolean or position?** A: If the answer feeds an `if`, use `includes`/`startsWith`/`endsWith` — they read as English. Use `indexOf` only when the index itself is needed, e.g. to `slice` from it.
+- **Q: What does `indexOf` return when nothing matches?** A: `-1`, never `undefined`. That is why the old `indexOf(x) !== -1` idiom exists — `includes` replaced it and is clearer.
+- **Q: What's the gotcha?** A: All of them are **case-sensitive**. `url.startsWith("http://")` is `false` for an `https` URL, and `"Staging"` will not match `"staging"` — lowercase both sides first when the case is not guaranteed.
+
+```mermaid
+flowchart TD
+    U["url = 'https://staging.vwo.com/api/login?retry=true'"] --> B{"Need yes/no or position?"}
+    B -->|yes/no| Y["includes / startsWith / endsWith → true | false"]
+    B -->|position| P["indexOf / lastIndexOf → number or -1"]
+    Y --> C["case-sensitive ⚠️"]
+    P --> C
+```
+
+```js
+let url = "https://staging.vwo.com/api/login?retry=true";
+
+// Boolean checks
+console.log(url.includes("staging"));      // true
+console.log(url.includes("production"));   // false
+console.log(url.startsWith("https"));      // true
+console.log(url.startsWith("http://"));    // false — case/exact sensitive
+console.log(url.endsWith("true"));         // true
+
+// Position checks — -1 means "not found"
+console.log(url.indexOf("a"));             // 10   first "a" (in "staging")
+console.log(url.lastIndexOf("a"));         // 24   last "a" (in "/api/")
+console.log(url.indexOf("nothere"));       // -1
+
+// Real use — environment guard
+if (url.includes("staging")) {
+    console.log("Running against staging, skipping payment tests");
+}
+```
+
+| Method | Returns | Use for |
+|--------|---------|---------|
+| `includes(x)` | `true` / `false` | Anywhere in the string |
+| `startsWith(x)` | `true` / `false` | Protocol, prefix |
+| `endsWith(x)` | `true` / `false` | Extension, suffix |
+| `indexOf(x)` | index or `-1` | First position |
+| `lastIndexOf(x)` | index or `-1` | Last position |
+
+---
+
 ## MCQ — Practice Questions
 
 **Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
@@ -1648,4 +2056,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ → scope & closures: scope chain, private state, retry trackers → strings: quotes, template literals, character access, searching) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
