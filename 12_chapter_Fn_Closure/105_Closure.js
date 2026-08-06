@@ -3,6 +3,10 @@ function startBrowser() {
 
     function installBrowser() {
         console.log(name);
+        let fail = true;
+        if (fail) {
+            console.log('Failed!');
+        }
     }
 
     return installBrowser;
