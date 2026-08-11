@@ -48,6 +48,14 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 - [13 — Strings](#13--strings)
   - [13.1 — Properties & Character Access](#131--properties--character-access)
   - [13.2 — Searching & Checking](#132--searching--checking)
+  - [13.3 — Extracting Substrings](#133--extracting-substrings)
+  - [13.4 — Case, Whitespace, Replacement & Concatenation](#134--case-whitespace-replacement--concatenation)
+  - [13.5 — Splitting, Joining & Conversion](#135--splitting-joining--conversion)
+  - [13.6 — Complete String Cheatsheet](#136--complete-string-cheatsheet)
+- [14 — Objects](#14--objects)
+  - [14.1 — Property Access & Mutation](#141--property-access--mutation)
+  - [14.2 — Nested Objects & Methods](#142--nested-objects--methods)
+  - [14.3 — Value vs Reference](#143--value-vs-reference)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -186,7 +194,19 @@ LearnPlaywright3x/
 ├── 13_String/
 │   ├── 109_String.js                        # quotes, template literals, multiline, String()
 │   ├── 110_String_Fn.js                     # length, index, .at(), charAt, charCodeAt
-│   └── 111.Str_Searching.js                 # includes, startsWith/endsWith, indexOf
+│   ├── 111.Str_Searching.js                 # includes, startsWith/endsWith, indexOf
+│   ├── 112_Extraction_String.js             # slice, substring, negative indexes, .at()
+│   ├── 113_String_More.js                   # case, trim, replace, concat
+│   ├── 114_Extra.js                         # regex replacement, split, join
+│   ├── 115_Fn_String_Conversion.js          # String/Number conversion and immutability
+│   └── String_Cheatsheet.md                 # complete SDET-focused string reference
+├── 14_Objects/
+│   ├── 116_Objects.js                       # literals, key access, reference equality
+│   ├── 117_Object_Person.js                 # deeply nested object with methods
+│   ├── 118_Object.js                        # object method and this
+│   ├── 119_Objects.js                       # access, add, and update properties
+│   ├── 120_Config.js                        # dynamic config properties and delete
+│   └── 121_CallBy_Ref_CallByValue.js        # primitive copies vs object references
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -2029,6 +2049,216 @@ if (url.includes("staging")) {
 
 ---
 
+#### 13.3 — Extracting Substrings
+
+**Concept:** `slice(start, end)` and `substring(start, end)` extract part of a string without changing the original. The `end` index is excluded; `slice` supports negative indexes, while `substring` treats negative values as `0`.
+
+**Why:** Test names, generated IDs, URLs, and filenames often contain multiple pieces of information inside one string. Extraction lets a test isolate the exact part it needs.
+
+**Q&A — why use this?**
+- **Q: Which method should I prefer?** A: Use `slice` for predictable start/end behavior and negative indexes.
+- **Q: How do I take the last three characters?** A: `str.slice(-3)`.
+- **Q: Is the end index included?** A: No. `slice(0, 5)` reads indexes `0` through `4`.
+- **Q: What is `.at()` for?** A: Reading one character, including from the end with a negative index such as `.at(-1)`.
+
+```js
+let str = "Login_Test_Pass_001";
+
+console.log(str.slice(0, 5));  // "Login"
+console.log(str.slice(11));    // "Pass_001"
+console.log(str.slice(-3));    // "001"
+
+console.log(str.substring(6, 10)); // "Test"
+console.log(str.at(0));             // "L"
+console.log(str.at(-1));            // "1"
+```
+
+| Method | Negative indexes | End index | Best use |
+|--------|:----------------:|:---------:|----------|
+| `slice(start, end)` | Yes | Excluded | General substring extraction |
+| `substring(start, end)` | No; clamps to `0` | Excluded | Legacy/simple non-negative ranges |
+| `at(index)` | Yes | N/A | One character |
+
+---
+
+#### 13.4 — Case, Whitespace, Replacement & Concatenation
+
+**Concept:** Case and whitespace methods normalize text; replacement methods create edited copies; concatenation combines multiple strings. None of these mutate the original string.
+
+**Why:** UI text often contains inconsistent case or extra spaces, and assertion messages frequently need values inserted or sensitive text replaced before logging.
+
+**Q&A — why use this?**
+- **Q: Does `replace("FAIL", "PASS")` replace every match?** A: No, only the first. Use `replaceAll` or a global regular expression (`/FAIL/g`) for all matches.
+- **Q: Does `trim()` remove spaces inside the string?** A: No, only whitespace at both ends. `trimStart` and `trimEnd` handle one side.
+- **Q: What is the clearest way to combine values?** A: Template literals are usually best when variables or expressions are involved.
+
+```js
+let text = "  Hello, World!  ";
+
+console.log(text.toUpperCase()); // "  HELLO, WORLD!  "
+console.log(text.toLowerCase()); // "  hello, world!  "
+console.log(text.trim());        // "Hello, World!"
+
+let result = "Test: FAIL. Retry: FAIL.";
+console.log(result.replace("FAIL", "PASS"));    // first match only
+console.log(result.replaceAll("FAIL", "PASS")); // every match
+console.log(result.replace(/FAIL/g, "PASS"));    // every match with regex
+
+let greeting = `${"Hello"} ${"World"}`;
+console.log(greeting); // "Hello World"
+```
+
+---
+
+#### 13.5 — Splitting, Joining & Conversion
+
+**Concept:** `split` turns a string into an array; `join` turns an array into a string. `String` and `.toString()` convert values to text, while `Number`, `parseInt`, and `parseFloat` convert suitable text to numbers.
+
+**Why:** Test data commonly arrives as CSV-like text, URL segments, labels, or environment variables. Splitting and conversion turn that raw text into values the test can process.
+
+**Q&A — why use this?**
+- **Q: What does `"pass,fail".split(",")` return?** A: `["pass", "fail"]`, an array of two strings.
+- **Q: `Number("42px")` or `parseInt("42px", 10)`?** A: `Number` is strict and returns `NaN`; `parseInt` reads the leading integer and returns `42`.
+- **Q: Can I change one character with `str[0] = "H"`?** A: No. Strings are immutable; create and assign a new string instead.
+
+```js
+console.log("pass,fail,skip".split(",")); // ["pass", "fail", "skip"]
+console.log("hello".split(""));          // ["h", "e", "l", "l", "o"]
+
+let parts = ["2024", "03", "07"];
+console.log(parts.join("-"));            // "2024-03-07"
+
+console.log(String(200));                 // "200"
+console.log((200).toString());            // "200"
+console.log(Number("42"));               // 42
+console.log(parseInt("42px", 10));       // 42
+console.log(parseFloat("3.14rem"));       // 3.14
+
+let word = "hello";
+word[0] = "H";
+console.log(word);                        // "hello" — unchanged
+```
+
+---
+
+#### 13.6 — Complete String Cheatsheet
+
+[`13_String/String_Cheatsheet.md`](13_String/String_Cheatsheet.md) is the full SDET-focused reference for string properties and methods. It covers character access, searching, extraction, splitting, Unicode-safe handling, case and whitespace, padding, replacement, comparison, templates, conversion, and practical test-automation recipes.
+
+Use the lesson files for focused examples and the cheatsheet when you need to compare methods or review a gotcha quickly.
+
+---
+
+### 14 — Objects
+
+**Concept:** An object groups related values under named keys. Values can be primitives, arrays, nested objects, or functions (methods), which makes objects the natural shape for users, test data, API responses, and configuration.
+
+**Why:** Modern JavaScript automation is object-heavy: Playwright options, fixtures, page data, API payloads, and assertion results are all commonly represented as objects.
+
+**Q&A — why use this?**
+- **Q: Are object keys case-sensitive?** A: Yes. `status` and `Status` are different keys.
+- **Q: Are two identical-looking objects equal?** A: Not unless both variables point to the same object. `{ status: "pass" } === { status: "pass" }` is `false`.
+- **Q: Is an object literal with quoted keys JSON?** A: No. It is still a JavaScript object. JSON is a text format produced or read with `JSON.stringify` and `JSON.parse`.
+
+```js
+const test = {
+    name: "Login",
+    status: "pass",
+    retries: 2,
+    tags: ["smoke", "auth"]
+};
+
+console.log(test.name);      // "Login"
+console.log(test["status"]); // "pass"
+```
+
+---
+
+#### 14.1 — Property Access & Mutation
+
+**Concept:** Read known property names with dot notation and dynamic names with bracket notation. Objects are mutable, so properties can be added, updated, or deleted after creation—even when the variable itself was declared with `const`.
+
+**Why:** Runtime configuration and test data often start small and gain values such as a selected browser, timeout, token, or result during execution.
+
+**Q&A — why use this?**
+- **Q: Dot or bracket notation?** A: Use dots for fixed valid identifiers (`user.name`) and brackets for dynamic keys or names containing spaces (`user[key]`).
+- **Q: Can a `const` object change?** A: Its binding cannot point to another object, but its properties can still change.
+- **Q: What does `delete` do?** A: Removes a property from the object.
+
+```js
+const config = {};
+
+config.browser = "Chrome";       // add
+config.timeout = 3000;           // add
+config.timeout = 5000;           // update
+console.log(config["timeout"]);  // 5000
+
+delete config.browser;           // remove
+console.log(config);             // { timeout: 5000 }
+```
+
+---
+
+#### 14.2 — Nested Objects & Methods
+
+**Concept:** Objects can contain other objects and arrays to model structured data. A method is a function stored on an object; inside a regular method, `this` refers to the object used to call it.
+
+**Why:** A realistic user or API response is rarely flat. Nesting keeps related data together, while methods can derive useful values such as a display name or formatted address.
+
+**Q&A — why use this?**
+- **Q: How do I reach a nested value?** A: Chain property access, for example `user.address.city`.
+- **Q: How does a method read another property?** A: Use `this`, as in `return this.name`.
+- **Q: Can an object hold arrays of objects?** A: Yes; this is a common shape for API collections and histories.
+
+```js
+const user = {
+    name: "Pramod",
+    address: {
+        city: "Bengaluru",
+        country: "India"
+    },
+    skills: ["JavaScript", "Playwright", "API Testing"],
+    printName() {
+        return this.name;
+    }
+};
+
+console.log(user.address.city); // "Bengaluru"
+console.log(user.skills[1]);    // "Playwright"
+console.log(user.printName());  // "Pramod"
+```
+
+---
+
+#### 14.3 — Value vs Reference
+
+**Concept:** Assigning a primitive copies its value, so changing the second variable does not affect the first. Assigning an object copies the reference value, so both variables point to the same object and observe the same mutations.
+
+**Why:** Shared references can cause surprising test pollution when one test updates configuration or fixture data that another test also uses.
+
+**Q&A — why use this?**
+- **Q: Does JavaScript pass objects "by reference"?** A: JavaScript passes everything by value; for objects, that value is a reference to the object.
+- **Q: Why is `{} === {}` false?** A: Each literal creates a different object at a different identity.
+- **Q: How do I avoid shared top-level mutations?** A: Make a shallow copy with `{ ...original }`; nested objects still need deliberate deep copying when they will also be changed.
+
+```js
+let firstNumber = 10;
+let secondNumber = firstNumber;
+secondNumber = 99;
+console.log(firstNumber); // 10 — independent primitive value
+
+let firstObject = { value: 10 };
+let secondObject = firstObject;
+secondObject.value = 99;
+console.log(firstObject.value); // 99 — same object
+
+let left = { status: "pass" };
+let right = { status: "pass" };
+console.log(left === right);    // false — different objects
+```
+
+---
+
 ## MCQ — Practice Questions
 
 **Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
@@ -2056,4 +2286,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ → scope & closures: scope chain, private state, retry trackers → strings: quotes, template literals, character access, searching) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ → scope & closures: scope chain, private state, retry trackers → strings: quotes, template literals, character access, searching, extraction, transformation, splitting, joining, conversion → objects: literals, property access, mutation, nesting, methods, value vs reference) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
