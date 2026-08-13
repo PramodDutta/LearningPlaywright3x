@@ -56,6 +56,16 @@ A learning repository tracking JavaScript fundamentals from first principles, al
   - [14.1 — Property Access & Mutation](#141--property-access--mutation)
   - [14.2 — Nested Objects & Methods](#142--nested-objects--methods)
   - [14.3 — Value vs Reference](#143--value-vs-reference)
+- [15 — Multi-Dimensional Arrays](#15--multi-dimensional-arrays)
+  - [15.1 — Star Patterns](#151--star-patterns)
+- [16 — Callbacks](#16--callbacks)
+  - [16.1 — Sync vs Async Callbacks](#161--sync-vs-async-callbacks)
+  - [16.2 — Callback Hell](#162--callback-hell)
+- [17 — Promises](#17--promises)
+  - [17.1 — then / catch / finally](#171--then--catch--finally)
+  - [17.2 — Chaining Promises](#172--chaining-promises)
+  - [17.3 — all / allSettled / race](#173--all--allsettled--race)
+- [18 — Async / Await](#18--async--await)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -207,6 +217,35 @@ LearnPlaywright3x/
 │   ├── 119_Objects.js                       # access, add, and update properties
 │   ├── 120_Config.js                        # dynamic config properties and delete
 │   └── 121_CallBy_Ref_CallByValue.js        # primitive copies vs object references
+├── 15_Multi_Dimensions_Array/
+│   ├── 122_Array.js                         # 1D vs 2D arrays, nested-loop grid print
+│   ├── 124_Array_Fn.js                      # map/reduce over rows, real suite results
+│   ├── 125_Right_Pattern.js                 # right-triangle star pattern
+│   ├── 126_Left_Hand.js                     # inverted (left-hand) star pattern
+│   └── 127_Pyramid_Pattern.js               # centered pyramid pattern
+├── 16_Callback/
+│   ├── 128_Callback.js                      # callback as arg — 3 ways to pass (named/anon/arrow)
+│   ├── 129_Callback.js                      # async test callback signature
+│   ├── 130_Sync_Callback.js                 # synchronous forEach callback
+│   ├── 131_Async_Callback.js                # setTimeout — async callback ordering
+│   ├── 132_CallbackHell.js                  # nested login-flow callbacks (the "hell")
+│   ├── 133_Call_RealHello.js                # deep nested error-first callback chain
+│   ├── 134_Call_Return.js                   # callback returning a value
+│   └── 135_Pyramid_DOM.js                   # nested DOM-step callback pyramid
+├── 17_Promise/
+│   ├── 136_Promise.js                       # new Promise, resolve/reject states
+│   ├── 137_REAL_Promise_API.js              # .then on a resolved promise
+│   ├── 138_REAL_Promise_API.js              # .catch on a rejected promise
+│   ├── 139_Promise_Finally.js               # .finally always runs
+│   ├── 140_Promise_REAL.js                  # promise chaining for a login flow
+│   ├── 141_Promise.All.js                   # Promise.all — all-or-fail
+│   ├── 142_Promise_Settle.js                # Promise.allSettled — report every test
+│   ├── 143.Promise.race.js                  # Promise.race — first to settle wins
+│   ├── 144_Promise.IQ.js                    # promise state quiz questions
+│   └── 145.IQ.js                            # all/allSettled quiz questions
+├── 18_Async_Await/
+│   ├── 146.js                               # .then chain vs async/await shape
+│   └── 147_BetterWay.js                     # async/await login flow (the "better way")
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -2255,6 +2294,329 @@ console.log(firstObject.value); // 99 — same object
 let left = { status: "pass" };
 let right = { status: "pass" };
 console.log(left === right);    // false — different objects
+```
+
+---
+
+### 15 — Multi-Dimensional Arrays
+
+**Concept:** A multi-dimensional array is an array whose elements are themselves arrays, most commonly a 2D array that reads like a table of rows and columns. You reach a cell with two indexes — `grid[row][column]`.
+
+**Why:** Real test data is naturally tabular: a matrix of test results, a grid of students and scores, or an HTML table flattened into rows of cells. Nested loops are the standard way to walk every cell.
+
+**Q&A — why use this?**
+- **Q: What is the shape of a 2D array?** A: An outer array of rows, where each row is itself an array. `matrix[0]` is the first row, `matrix[0][1]` is its second cell.
+- **Q: How do I visit every cell?** A: A `for` loop for rows, and inside it a `for` loop for columns — `grid[i][j]`.
+- **Q: Does each row need the same length?** A: No. JavaScript does not enforce rectangular shape; ragged arrays are legal but often buggy when you assume equal length.
+
+```js
+let matrix = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+];
+
+console.log(matrix[1][2]); // 6 — row 1, column 2
+
+for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+        process.stdout.write(matrix[i][j] + " ");
+    }
+    console.log(""); // newline after each row
+}
+```
+
+```mermaid
+flowchart TD
+    A[2D array = array of arrays] --> B[Outer loop: rows]
+    B --> C[Inner loop: columns]
+    C --> D["matrix[row][col]"]
+    D --> E[Process cell]
+```
+
+---
+
+#### 15.1 — Star Patterns
+
+**Concept:** Star patterns are a warm-up for nested loops. The outer loop controls the number of lines, and one or more inner loops control spaces and stars on each line to build right triangles, inverted triangles, and centered pyramids.
+
+**Why:** These exercises train the exact loop-and-index thinking needed to walk 2D arrays and generate test fixtures. A pyramid in particular forces you to reason about both leading spaces and an odd star count per row.
+
+**Q&A — why use this?**
+- **Q: How do I print without a trailing newline?** A: Use `process.stdout.write("*")` for stars and `console.log("")` only at the end of each row.
+- **Q: Why does the pyramid use `2 * i - 1` stars?** A: Row 1 needs 1 star, row 2 needs 3, row 3 needs 5 — an odd-number sequence, which `2*i - 1` generates.
+- **Q: How do I center a row?** A: Pad the left with `n - i` spaces before printing the `2*i - 1` stars.
+
+```js
+let n = 3;
+for (let i = 1; i <= n; i++) {
+    let row = "";
+    for (let j = 1; j <= n - i; j++) row += " "; // leading spaces
+    for (let j = 1; j <= 2 * i - 1; j++) row += "*"; // stars
+    console.log(row);
+}
+//   *
+//  ***
+// *****
+```
+
+---
+
+### 16 — Callbacks
+
+**Concept:** A callback is a function you pass as an argument to another function, so the receiver can "call you back" later. JavaScript lets you pass it three ways: a named function, an anonymous function, or an arrow function — all equivalent.
+
+**Why:** Callbacks are how JavaScript signals "this finished" without blocking the thread. They are the foundation of asynchronous code and the first version of how test runners and APIs hand results back to your code.
+
+**Q&A — why use this?**
+- **Q: When is a callback called?** A: Whenever the receiving function decides — immediately (sync) or after some work finishes (async), such as a timer or network response.
+- **Q: Are the three ways to pass it different?** A: Behaviorally no; named, anonymous, and arrow all produce a function. The arrow is shortest and does not rebind `this`.
+- **Q: What is the "error-first" convention?** A: A Node-style callback takes `(error, result)`; you check `error` first and `return` early if it exists.
+
+```js
+function placeOrder(item, callback) {
+    console.log("Order placed:", item);
+    callback(); // call back later
+}
+
+// Named
+function print() { console.log("Done with the order"); }
+placeOrder("Burger", print);
+
+// Anonymous
+placeOrder("Burger", function () {
+    console.log("Order is ready, pick it up!");
+});
+
+// Arrow
+placeOrder("Burger", () => console.log("Arrow fn — no name"));
+```
+
+```mermaid
+flowchart LR
+    A[Call placeOrder] --> B["Runs body, calls callback()"]
+    B --> C[Callback executes]
+    C --> D["Control returns to placeOrder"]
+```
+
+---
+
+#### 16.1 — Sync vs Async Callbacks
+
+**Concept:** A synchronous callback runs immediately, inside the current call stack, before the next line. An asynchronous callback (like `setTimeout`) is handed to the browser/Node event loop and runs only after the current synchronous code finishes.
+
+**Why:** Knowing the difference explains a classic automation trap — a line that logs "all done" prints *before* an asynchronous API response arrives, so you cannot rely on the order you read the code.
+
+**Q&A — why use this?**
+- **Q: Which is synchronous here?** A: `Array.forEach(callback)` — it iterates all items and finishes before moving on.
+- **Q: Which is asynchronous?** A: `setTimeout(callback, ms)` — it registers the callback and returns immediately; the callback runs later.
+- **Q: What is the gotcha?** A: Code after an async call does not wait for it. "Moving to next" logs before "API response received".
+
+```js
+console.log("Test 1: started");
+
+setTimeout(function () {
+    console.log("Test 2: API response received!"); // runs LAST
+}, 5000);
+
+console.log("Test 3: moving to next"); // runs before the timeout fires
+```
+
+---
+
+#### 16.2 — Callback Hell
+
+**Concept:** When each async step is nested inside the previous step's callback, the code indents further right with every step — a staircase of `})` closers that is hard to read, maintain, and error-check.
+
+**Why:** A real E2E flow (open browser → go to login → enter credentials → click login) chains several steps. Nesting them as callbacks produces the "pyramid of doom", which is the exact problem Promises and async/await were invented to solve.
+
+**Q&A — why use this?**
+- **Q: What does callback hell look like?** A: Each step's callback wraps the next, so the deepest code is indented many levels and ends in a wall of `})`.
+- **Q: Why is it a problem for testers?** A: Adding error handling to each level multiplies the noise, and tracing which level failed is painful.
+- **Q: What replaces it?** A: Promises flatten the nesting into a chain, and async/await makes it read like straight-line code.
+
+```js
+openBrowser(function () {
+    goToLoginPage(function () {
+        enterCredentials(function () {
+            clickLogin(function () {
+                console.log("Test is Complete!"); // deeply nested
+            });
+        });
+    });
+});
+```
+
+```mermaid
+flowchart TD
+    A[openBrowser] --> B[goToLoginPage]
+    B --> C[enterCredentials]
+    C --> D[clickLogin]
+    D --> E[Complete]
+    style A fill:#fff4e6,stroke:#d48a00
+    style E fill:#e6f4ea,stroke:#1a7f37
+```
+
+---
+
+### 17 — Promises
+
+**Concept:** A Promise is an object representing the eventual result of an async operation. It starts *pending* and settles once — either *fulfilled* (resolved) with a value or *rejected* with an error — and handlers react to whichever state it reaches.
+
+**Why:** Promises replace callback nesting with a flat chain, give a single place to catch errors (`.catch`), and come with combinators (`Promise.all`, `allSettled`, `race`) that mirror real test-orchestration needs.
+
+**Q&A — why use this?**
+- **Q: What are the three states?** A: `pending` (in flight), `fulfilled` (resolved), and `rejected` (failed). A promise settles exactly once.
+- **Q: How do I build one?** A: `new Promise((resolve, reject) => { ... })` — call `resolve(value)` on success or `reject(error)` on failure.
+- **Q: How do I consume one?** A: `.then(success)` for the fulfilled value, `.catch(error)` for rejection, and `.finally(cleanup)` that runs either way.
+
+```js
+let order = new Promise(function (resolve, reject) {
+    let foodReady = false;
+    if (foodReady) resolve("Pizza is delivered!");
+    else reject("Order cancelled");
+});
+
+order
+    .then(function (msg) { console.log("Success:", msg); })
+    .catch(function (err) { console.log("Failed:", err); })
+    .finally(function () { console.log("Cleanup"); });
+```
+
+```mermaid
+flowchart TD
+    P[new Promise] --> Q{Operation}
+    Q -->|success| R[resolve → fulfilled]
+    Q -->|failure| J[reject → rejected]
+    R --> T[.then]
+    J --> C[.catch]
+    T --> F[.finally]
+    C --> F
+```
+
+---
+
+#### 17.1 — then / catch / finally
+
+**Concept:** `.then` handles a fulfilled promise, `.catch` handles a rejected one, and `.finally` runs cleanup in both cases. When a promise rejects, its `.then` is skipped entirely and control jumps straight to `.catch`.
+
+**Why:** These three methods map one-to-one to test assertions: run the action (`.then`), handle the failure (`.catch`), and always clean up state like a browser or a fixture (`.finally`).
+
+**Q&A — why use this?**
+- **Q: Does `.then` run on rejection?** A: No. A rejected promise skips `.then` and goes to the next `.catch`.
+- **Q: Does `.finally` receive the value or error?** A: No. It takes no argument and cannot change the outcome; it just runs.
+- **Q: Can I chain `.finally` after `.catch`?** A: Yes — `.then().catch().finally()` is the standard shape.
+
+```js
+let apiCall = new Promise(function (resolve, reject) {
+    reject("500 Error");
+});
+
+apiCall
+    .then(function (data) { console.log("Data is success!!"); }) // skipped
+    .catch(function (error) { console.log(error); });             // "500 Error"
+```
+
+---
+
+#### 17.2 — Chaining Promises
+
+**Concept:** Returning a new promise from inside a `.then` lets the next `.then` wait for it, producing a flat sequence of steps. Each step's message flows to the next, and a single `.catch` at the end handles a failure anywhere in the chain.
+
+**Why:** This is the promise version of a multi-step E2E flow — the same login sequence that callback hell nested four levels deep becomes four flat `.then` calls, far easier to read and extend.
+
+**Q&A — why use this?**
+- **Q: What makes chaining work?** A: Each `.then` returns a promise; if its callback returns a promise, the next `.then` waits for it.
+- **Q: Where does one error handler go?** A: A single `.catch` at the end of the chain catches a rejection from any earlier step.
+- **Q: What does the final `.finally` do?** A: Runs once the chain settles, for teardown like closing the browser.
+
+```js
+openBrowser()
+    .then(function (msg) { console.log("Step 1:", msg); return goToLogin(); })
+    .then(function (msg) { console.log("Step 2:", msg); return enterCredentials(); })
+    .then(function (msg) { console.log("Step 3:", msg); return clickLogin(); })
+    .then(function (msg) { console.log("Step 4:", msg); })
+    .catch(function (error) { console.log("Error:", error); })
+    .finally(function () { console.log("Done execution!"); });
+```
+
+---
+
+#### 17.3 — all / allSettled / race
+
+**Concept:** `Promise.all` resolves only if *every* promise fulfills, or rejects on the first failure. `Promise.allSettled` waits for *all* to settle and reports each outcome. `Promise.race` settles with whichever promise settles first.
+
+**Why:** These three are the QA toolkit for running groups of checks: `all` for "all must pass", `allSettled` for "give me a full report even with failures", and `race` for "use the fastest server/response".
+
+**Q&A — why use this?**
+- **Q: Which stops at the first failure?** A: `Promise.all` rejects immediately on the first rejection; `allSettled` never short-circuits.
+- **Q: What does `allSettled` return?** A: An array of `{ status: "fulfilled"|"rejected", value|reason }` — one entry per input, in order.
+- **Q: When is `race` useful?** A: Timeouts and failover — respond to whichever server or operation completes first.
+
+```js
+Promise.all([
+    Promise.resolve("OK"),
+    Promise.reject("DB DOWN"),
+    Promise.resolve("OK")
+])
+    .then(function (r) { console.log(r); })
+    .catch(function (err) { console.log("Failed:", err); }); // "Failed: DB DOWN"
+
+Promise.allSettled([
+    Promise.resolve("Test A Passed!"),
+    Promise.reject("Test B failed"),
+    Promise.resolve("Test C passed")
+]).then(function (results) {
+    results.forEach(function (r, i) {
+        console.log("Test " + (i + 1) + ":", r.status, "-", r.value || r.reason);
+    });
+});
+```
+
+| Method | Settles when | Fails on first rejection? |
+|:-------|:-------------|:-------------------------:|
+| `Promise.all` | all fulfill | Yes |
+| `Promise.allSettled` | all settle | No |
+| `Promise.race` | first settles | Only if that one rejects |
+
+---
+
+### 18 — Async / Await
+
+**Concept:** `async` marks a function that returns a promise; inside it, `await` pauses the function until a promise settles and yields its resolved value. The result reads like ordinary top-to-bottom code instead of a chain of `.then` callbacks.
+
+**Why:** Async/await is the modern replacement for promise chains — the same login flow becomes straight-line statements with `await`, which is far easier to read, debug, and wrap in a `try/catch`.
+
+**Q&A — why use this?**
+- **Q: What does `async` guarantee?** A: The function always returns a promise, even if it returns a plain value.
+- **Q: What does `await` require?** A: It can only be used inside an `async` function, and it waits for the promise on its right.
+- **Q: How do I handle errors?** A: Wrap the awaited calls in `try/catch`, or call the async function and attach `.catch` to its returned promise.
+
+```js
+async function runLoginFlow() {
+    let msg1 = await openBrowser();
+    console.log("Step 1:", msg1);
+
+    let msg2 = await goToLogin();
+    console.log("Step 2:", msg2);
+
+    let msg3 = await enterCredentials();
+    console.log("Step 3:", msg3);
+
+    let msg4 = await clickLogin();
+    console.log("Step 4:", msg4);
+}
+
+runLoginFlow();
+```
+
+```mermaid
+flowchart TD
+    A[async function] --> B["await openBrowser()"]
+    B --> C["await goToLogin()"]
+    C --> D["await enterCredentials()"]
+    D --> E["await clickLogin()"]
+    E --> F[Return promise]
 ```
 
 ---
