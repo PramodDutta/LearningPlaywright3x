@@ -7,6 +7,7 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 ## Table of Contents
 
 - [Repo Structure](#repo-structure)
+- [Repeatable “Go Go Go” Command](#repeatable-go-go-go-command)
 - [00 — GenAI / RICE Prompting](#00--genai--rice-prompting)
 - [01 — Hello World](#01--hello-world)
 - [02 — `let` & Scope](#02--let--scope)
@@ -75,6 +76,9 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 
 ```
 LearnPlaywright3x/
+├── .commandcode/
+│   └── commands/
+│       └── go-go-go.md                      # repeatable README, verify, commit, and push workflow
 ├── 00_chaptet_GENAI/
 │   └── RICEPOT_SeleniumFramworkCreation.md   # RICE-style prompt for Selenium framework gen
 ├── 01_chapter_Javascript/
@@ -245,7 +249,7 @@ LearnPlaywright3x/
 │   └── 145.IQ.js                            # all/allSettled quiz questions
 ├── 18_Async_Await/
 │   ├── 146.js                               # .then chain vs async/await shape
-│   └── 147_BetterWay.js                     # async/await login flow (the "better way")
+│   └── 147_BetterWay.js                     # async/await login and API request flows
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -256,6 +260,18 @@ LearnPlaywright3x/
     ├── 03_commands_mac.md                     # VS Code shortcuts — macOS
     └── 03_commands_win.md                     # VS Code shortcuts — Windows
 ```
+
+---
+
+## Repeatable “Go Go Go” Command
+
+Command Code users can run `/go-go-go` whenever they want the agent to inspect the current changes, bring this parent README up to date, verify the affected code, create a Conventional Commit, and push the current branch.
+
+```text
+/go-go-go
+```
+
+The reusable prompt lives at [`.commandcode/commands/go-go-go.md`](.commandcode/commands/go-go-go.md). It stages only intentional files, blocks the push when verification fails or a possible secret is found, sets the upstream for a new branch, and never force-pushes.
 
 ---
 
@@ -2591,6 +2607,7 @@ Promise.allSettled([
 - **Q: What does `async` guarantee?** A: The function always returns a promise, even if it returns a plain value.
 - **Q: What does `await` require?** A: It can only be used inside an `async` function, and it waits for the promise on its right.
 - **Q: How do I handle errors?** A: Wrap the awaited calls in `try/catch`, or call the async function and attach `.catch` to its returned promise.
+- **Q: How do I await an API-style promise in a regular Node.js script?** A: Put the `await` inside an `async` function, call that function, and then use the resolved response. This avoids relying on top-level `await` in a CommonJS script.
 
 ```js
 async function runLoginFlow() {
@@ -2608,6 +2625,23 @@ async function runLoginFlow() {
 }
 
 runLoginFlow();
+```
+
+The second example models an API request that resolves with an HTTP status. The awaited response stays inside an `async` function, so the file runs directly with Node.js.
+
+```js
+function apiRequest() {
+    return new Promise(function (resolve) {
+        resolve({ status: 200 });
+    });
+}
+
+async function runApiRequest() {
+    let response = await apiRequest();
+    console.log("API status:", response.status);
+}
+
+runApiRequest();
 ```
 
 ```mermaid
