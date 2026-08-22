@@ -4,37 +4,8 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 
 ---
 
-## Getting Started
-
-**Requirements:** Node.js 18+ (check with `node -v`). No dependencies are needed for the plain `.js` lessons.
-
-```bash
-# Clone and run any lesson directly
-git clone <repo-url> && cd LearnPlaywright3x
-node 01_chapter_Javascript/01_HelloWorld.js
-```
-
-Most chapters are dependency-free JavaScript. Run any lesson with:
-
-```bash
-node path/to/file.js
-```
-
-The one exception is `18_Async_Await/149_Example.spec.ts`, a Playwright test. It needs the Playwright toolchain:
-
-```bash
-npm init playwright@latest   # once per machine/project
-npx playwright install       # downloads browsers
-npx playwright test 18_Async_Await/149_Example.spec.ts
-```
-
-**How to use this repo:** read a chapter's Concept section → open its lesson files → predict each output before running → verify with `node` → close gaps with the linked IQ notes and MCQs.
-
----
-
 ## Table of Contents
 
-- [Getting Started](#getting-started)
 - [Repo Structure](#repo-structure)
 - [Repeatable “Go Go Go” Command](#repeatable-go-go-go-command)
 - [00 — GenAI / RICE Prompting](#00--genai--rice-prompting)
@@ -71,7 +42,6 @@ npx playwright test 18_Async_Await/149_Example.spec.ts
   - [11.7 — Hoisting](#117--hoisting)
   - [11.8 — Temporal Dead Zone (TDZ)](#118--temporal-dead-zone-tdz)
   - [11.9 — Hoisting Trap: Declaration vs Expression](#119--hoisting-trap-declaration-vs-expression)
-  - [11.10 — Functions in Real Test Code](#1110--functions-in-real-test-code)
 - [12 — Scope & Closures](#12--scope--closures)
   - [12.1 — Scope Chain](#121--scope-chain)
   - [12.2 — Closures](#122--closures)
@@ -407,7 +377,7 @@ let 变量 = "Chinese characters";
 var g = 10; // cmd + /, ctrl + /
 ```
 
-Full identifier rules + naming convention tables live in [`IQ_Notes/01_Identifier_Rules.md`](IQ_Notes/01_Identifier_Rules.md). The complete reserved-keyword list is in [`IQ_Notes/02_Keyword_Notes.md`](IQ_Notes/02_Keyword_Notes.md).
+Full identifier rules + naming convention tables live in [`IQ_Notes/01_Identifier_Rules.md`](IQ_Notes/01_Identifier_Rules.md).
 
 ---
 
@@ -1235,8 +1205,6 @@ console.log(p, q);                 // 2 1
 | Swap | `[a, b] = [b, a]` |
 | Index + value in a loop | `for (let [i, v] of arr.entries())` |
 
-**Practice:** test yourself with [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) before moving to functions.
-
 ---
 
 ### 11 — Functions
@@ -1654,8 +1622,6 @@ console.log(a);       // "temp"  — same variable, function-scoped
 
 Full walkthrough with class hoisting, interview traps, and phase diagrams: [`11_chapter_Funtions/102_Hoisting_TDZ.md`](11_chapter_Funtions/102_Hoisting_TDZ.md).
 
-**Reference:** how source code becomes machine code — [`IQ_Notes/Source_Code_ByteCODE_Binary_IQ.md`](IQ_Notes/Source_Code_ByteCODE_Binary_IQ.md).
-
 ---
 
 #### 11.8 — Temporal Dead Zone (TDZ)
@@ -1760,7 +1726,7 @@ console.log(sayHi("Bob"));      // "Hi, Bob!"  ✅ after the line
 
 ---
 
-#### 11.10 — Functions in Real Test Code
+### Functions in Real Test Code
 
 **Concept:** The same validation logic written as a declaration, an expression, and an arrow — proving the three forms are interchangeable for ordinary test helpers.
 
@@ -2765,32 +2731,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** A from-scratch JavaScript fundamentals course for test automation, plus a GenAI prompting folder, an MCQ self-test bank, and an IQ_Notes reference library.
-
-## Progress Tracker
-
-| # | Chapter | Topics | Status |
-|---|---------|--------|:------:|
-| 00 | GenAI / RICE Prompting | Structured LLM prompts for framework generation | ✅ |
-| 01 | Hello World | `console.log`, running files with Node | ✅ |
-| 02 | `let` & Scope | Block scope, hoisting basics | ✅ |
-| 03 | Identifiers & Comments | Naming rules, conventions, JSDoc | ✅ |
-| 04 | Literals & Numbers | All literal types, `null` vs `undefined`, BigInt, NaN | ✅ |
-| 05 | Operators | Assignment, arithmetic, comparison, logical, ternary, `typeof`, `??` | ✅ |
-| 06 | Statements & Conditionals | `if / else if / else`, nesting | ✅ |
-| 07 | Switch Statements | Cases, fall-through, grouped cases, `switch(true)` | ✅ |
-| 08 | User Input | `prompt`, `readline`, `prompt-sync`, stdin | ✅ |
-| 09 | Loops | `for`, `while`, `do...while`, nested loops, `break` | ✅ |
-| 10 | Arrays | Create, access, add/remove, search, iterate, transform, sort, slice, combine, check, copy, destructure | ✅ |
-| 11 | Functions | Four types, expressions, arrows, IIFE, spread/rest, `return`, hoisting, TDZ | ✅ |
-| 12 | Scope & Closures | Scope chain, private state, retry trackers | ✅ |
-| 13 | Strings | Quotes, templates, access, search, extract, split/join, conversion | ✅ |
-| 14 | Objects | Literals, property access, mutation, nesting, methods, value vs reference | ✅ |
-| 15 | Multi-Dimensional Arrays | 2D grids, nested loops, star patterns | ✅ |
-| 16 | Callbacks | Sync vs async callbacks, callback hell | ✅ |
-| 17 | Promises | States, then/catch/finally, chaining, all/allSettled/race | ✅ |
-| 18 | Async / Await | Error handling, sequential vs parallel, retries, microtask order | ✅ |
-| — | MCQ Practice | Array multiple-choice bank (more coming) | 🚧 |
-| — | IQ_Notes | Standalone concept references via prompt template | 🚧 |
-
-**Suggested next chapters:** Playwright fixtures · Page Object Model · API testing with `request` · Network interception
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ → scope & closures: scope chain, private state, retry trackers → strings: quotes, template literals, character access, searching, extraction, transformation, splitting, joining, conversion → objects: literals, property access, mutation, nesting, methods, value vs reference → callbacks → promises → async/await: error handling, sequential and parallel execution, retries, microtask order) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
