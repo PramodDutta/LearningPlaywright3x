@@ -7,6 +7,7 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 ## Table of Contents
 
 - [Repo Structure](#repo-structure)
+- [Repeatable “Go Go Go” Command](#repeatable-go-go-go-command)
 - [00 — GenAI / RICE Prompting](#00--genai--rice-prompting)
 - [01 — Hello World](#01--hello-world)
 - [02 — `let` & Scope](#02--let--scope)
@@ -75,6 +76,9 @@ A learning repository tracking JavaScript fundamentals from first principles, al
 
 ```
 LearnPlaywright3x/
+├── .commandcode/
+│   └── commands/
+│       └── go-go-go.md                      # repeatable README, verify, commit, and push workflow
 ├── 00_chaptet_GENAI/
 │   └── RICEPOT_SeleniumFramworkCreation.md   # RICE-style prompt for Selenium framework gen
 ├── 01_chapter_Javascript/
@@ -245,7 +249,14 @@ LearnPlaywright3x/
 │   └── 145.IQ.js                            # all/allSettled quiz questions
 ├── 18_Async_Await/
 │   ├── 146.js                               # .then chain vs async/await shape
-│   └── 147_BetterWay.js                     # async/await login flow (the "better way")
+│   ├── 147_BetterWay.js                     # async/await login and API request flows
+│   ├── 148_AA.js                            # async return values and awaiting resolved promises
+│   ├── 149_Example.spec.ts                  # await inside a Playwright test
+│   ├── 150.js                               # try/catch/finally error handling
+│   ├── 151_Seq_Eexecution.js                # dependent API calls run sequentially
+│   ├── 152_Parall_Execution.js              # independent API calls with Promise.all
+│   ├── 153_API_Flaky.js                     # bounded retry-until-success pattern
+│   └── 154_IQ.js                            # async/await interview examples and execution order
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -256,6 +267,18 @@ LearnPlaywright3x/
     ├── 03_commands_mac.md                     # VS Code shortcuts — macOS
     └── 03_commands_win.md                     # VS Code shortcuts — Windows
 ```
+
+---
+
+## Repeatable “Go Go Go” Command
+
+Command Code users can run `/go-go-go` whenever they want the agent to inspect the current changes, bring this parent README up to date, verify the affected code, create a Conventional Commit, and push the current branch.
+
+```text
+/go-go-go
+```
+
+The reusable prompt lives at [`.commandcode/commands/go-go-go.md`](.commandcode/commands/go-go-go.md). It stages only intentional files, blocks the push when verification fails or a possible secret is found, sets the upstream for a new branch, and never force-pushes.
 
 ---
 
@@ -2591,6 +2614,20 @@ Promise.allSettled([
 - **Q: What does `async` guarantee?** A: The function always returns a promise, even if it returns a plain value.
 - **Q: What does `await` require?** A: It can only be used inside an `async` function, and it waits for the promise on its right.
 - **Q: How do I handle errors?** A: Wrap the awaited calls in `try/catch`, or call the async function and attach `.catch` to its returned promise.
+- **Q: How do I await an API-style promise in a regular Node.js script?** A: Put the `await` inside an `async` function, call that function, and then use the resolved response. This avoids relying on top-level `await` in a CommonJS script.
+- **Q: Sequential or parallel?** A: Await calls one by one when a later step depends on an earlier result. Start independent calls together with `Promise.all` to avoid waiting for each timer or network request in turn.
+- **Q: How should a retry loop stop?** A: Return immediately after the first successful attempt, and throw only after the configured maximum number of failures.
+- **Q: Why does `A, B, D, C` print in that order?** A: The synchronous code prints `A`, enters the async function and prints `B`, then `await` yields. The caller continues with `D`, and the promise continuation prints `C` in a microtask.
+
+| Lesson | Focus |
+|--------|-------|
+| [`148_AA.js`](18_Async_Await/148_AA.js) | Calling an async function returns a promise; `await` unwraps resolved values. |
+| [`149_Example.spec.ts`](18_Async_Await/149_Example.spec.ts) | Playwright actions and assertions awaited inside an async test. |
+| [`150.js`](18_Async_Await/150.js) | Rejected promises handled with `try`, `catch`, and `finally`. |
+| [`151_Seq_Eexecution.js`](18_Async_Await/151_Seq_Eexecution.js) | Three dependent one-second calls take about three seconds sequentially. |
+| [`152_Parall_Execution.js`](18_Async_Await/152_Parall_Execution.js) | Three independent one-second calls complete in about one second with `Promise.all`. |
+| [`153_API_Flaky.js`](18_Async_Await/153_API_Flaky.js) | Bounded retry examples cover eventual success and exhausting every attempt. |
+| [`154_IQ.js`](18_Async_Await/154_IQ.js) | Interview examples covering resolved values, rejection handling, API responses, and microtask order. |
 
 ```js
 async function runLoginFlow() {
@@ -2608,6 +2645,52 @@ async function runLoginFlow() {
 }
 
 runLoginFlow();
+```
+
+The second example models an API request that resolves with an HTTP status. The awaited response stays inside an `async` function, so the file runs directly with Node.js.
+
+```js
+function apiRequest() {
+    return new Promise(function (resolve) {
+        resolve({ status: 200 });
+    });
+}
+
+async function runApiRequest() {
+    let response = await apiRequest();
+    console.log("API status:", response.status);
+}
+
+runApiRequest();
+```
+
+Sequential execution waits for each result before starting the next call. Parallel execution starts independent work together and awaits the combined result.
+
+```js
+let login = await apiCall("Login");
+let dashboard = await apiCall("Dashboard"); // starts after Login finishes
+
+let [auth, user] = await Promise.all([
+    apiCall("Auth Service"),
+    apiCall("User Service")
+]); // both calls run together
+```
+
+Run the plain JavaScript lessons directly with Node.js:
+
+```bash
+node 18_Async_Await/148_AA.js
+node 18_Async_Await/150.js
+node 18_Async_Await/151_Seq_Eexecution.js
+node 18_Async_Await/152_Parall_Execution.js
+node 18_Async_Await/153_API_Flaky.js
+node 18_Async_Await/154_IQ.js
+```
+
+`149_Example.spec.ts` requires a project with `@playwright/test` and its browser installed. From that configured environment, run:
+
+```bash
+npx playwright test 18_Async_Await/149_Example.spec.ts
 ```
 
 ```mermaid
@@ -2648,4 +2731,4 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ → scope & closures: scope chain, private state, retry trackers → strings: quotes, template literals, character access, searching, extraction, transformation, splitting, joining, conversion → objects: literals, property access, mutation, nesting, methods, value vs reference) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
+> **TL;DR:** This repo is a from-scratch JavaScript fundamentals course (`console.log` → scoping → identifiers → literals/numbers → operators → conditionals → switch statements → user input → loops → arrays: create, search, iterate, transform, sort, slice, combine, check, copy, destructure → functions: the four types, expressions, arrows, IIFE, spread/rest, `return`, `var`/`let`/`const`, hoisting, TDZ → scope & closures: scope chain, private state, retry trackers → strings: quotes, template literals, character access, searching, extraction, transformation, splitting, joining, conversion → objects: literals, property access, mutation, nesting, methods, value vs reference → callbacks → promises → async/await: error handling, sequential and parallel execution, retries, microtask order) plus a `00_chaptet_GENAI` folder for LLM automation-framework prompting, an `MCQ` self-test bank, and an `IQ_Notes` library of standalone concept references anyone can regenerate with the same prompt template.
