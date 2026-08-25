@@ -97,6 +97,8 @@ npx playwright test 18_Async_Await/149_Example.spec.ts
   - [17.2 — Chaining Promises](#172--chaining-promises)
   - [17.3 — all / allSettled / race](#173--all--allsettled--race)
 - [18 — Async / Await](#18--async--await)
+- [19 — Export / Import (ES Modules)](#19--export--import-es-modules)
+- [20 — Classes & OOP](#20--classes--oop)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -287,6 +289,16 @@ LearnPlaywright3x/
 │   ├── 152_Parall_Execution.js              # independent API calls with Promise.all
 │   ├── 153_API_Flaky.js                     # bounded retry-until-success pattern
 │   └── 154_IQ.js                            # async/await interview examples and execution order
+├── 19_Export_Import/
+│   ├── utils.js                              # named exports: BASE_URL, formatTestName, formatTestName2
+│   ├── testutil.js                           # named exports: BASE_URL, formatUpperCaseString
+│   ├── 155.js                                # importing named exports from testutil.js
+│   ├── 156_test.js                           # importing from two modules with alias renaming
+│   ├── 157.js                               # default import from logs/logger.js
+│   └── logs/
+│       └── logger.js                         # default export (log) + named export (logBetter)
+├── 20_Class_Object_OOPs/
+│   └── 158.js                               # class syntax, private fields (#), new keyword, object references
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -2738,6 +2750,144 @@ flowchart TD
 
 ---
 
+### 19 — Export / Import (ES Modules)
+
+**Concept:** ES modules let you split code across files. `export` makes a variable, function, or class available to other files; `import` brings it in. There are two export styles: **named exports** (export specific things by name) and **default exports** (export one main thing per file).
+
+**Why:** Real test projects are never one file. Page objects, utilities, config, and loggers each live in their own file and are wired together with imports — this is how Playwright fixtures and helpers connect.
+
+**Q&A — why use this?**
+- **Q: Named vs default export?** A: Named exports let you export many things from one file (`export let BASE_URL`, `export function formatName`). A default export is the file's single main export (`export default function log`). You can mix both in one file.
+- **Q: How do I import a named export?** A: Use curly braces with the exact name: `import { BASE_URL, formatTestName } from './utils.js'`. Rename with `as`: `import { BASE_URL as url } from './utils.js'`.
+- **Q: How do I import a default export?** A: No curly braces, and you pick any name: `import log from './logs/logger.js'`.
+- **Q: What's the gotcha?** A: Named imports must match the exported name exactly (case-sensitive). A variable that is never exported is private to its file — `let fname = "Pramod"` in `testutil.js` is invisible to importers.
+
+```mermaid
+flowchart TD
+    U["utils.js"] -->|"export let BASE_URL<br/>export function formatTestName"| N["Named exports"]
+    T["testutil.js"] -->|"export let BASE_URL<br/>export function formatUpperCaseString"| N
+    L["logs/logger.js"] -->|"export default function log<br/>export function logBetter"| D["Default + named"]
+    N --> I1["import { BASE_URL, formatTestName } from './utils.js'"]
+    N --> I2["import { BASE_URL as alias } from './testutil.js'"]
+    D --> I3["import log from './logs/logger.js'"]
+    D --> I4["import { logBetter } from './logs/logger.js'"]
+```
+
+```js
+// utils.js — named exports
+export let BASE_URL = "https://api.staging.com";
+
+export function formatTestName(name) {
+    return "TC_" + name.toUpperCase();
+}
+
+// testutil.js — named exports (different module, same export name BASE_URL)
+export let BASE_URL = "https://app.vwo.com";
+
+export function formatUpperCaseString(sname) {
+    return sname.toUpperCase();
+}
+
+// logs/logger.js — default export + named export
+export default function log(message) {
+    console.log("[LOG] " + message);
+}
+
+export function logBetter(message) {
+    console.log("[LOGS] " + message);
+}
+```
+
+```js
+// 155.js — importing named exports
+import { BASE_URL, formatUpperCaseString } from './testutil.js';
+console.log(BASE_URL);                              // "https://app.vwo.com"
+console.log(formatUpperCaseString("Pramod"));       // "PRAMOD"
+
+// 156_test.js — importing from two modules, renaming with `as`
+import { BASE_URL as bul_util, formatTestName } from "./utils.js";
+import { BASE_URL as bul_testtul, formatUpperCaseString } from "./testutil.js";
+console.log(bul_util);                              // "https://api.staging.com"
+console.log(bul_testtul);                           // "https://app.vwo.com"
+console.log(formatTestName("login"));               // "TC_LOGIN"
+
+// 157.js — default import (no braces, any name)
+import log from './logs/logger.js';
+log('Starting');                                    // "[LOG] Starting"
+```
+
+| Export style | Syntax | Import syntax |
+|-------------|--------|---------------|
+| Named | `export let X` / `export function f()` | `import { X, f } from './file.js'` |
+| Default | `export default function f()` | `import f from './file.js'` (any name) |
+| Rename on import | — | `import { X as alias } from './file.js'` |
+
+Run the lessons with Node.js (ES modules require `"type": "module"` in `package.json` or `.mjs` extension):
+
+```bash
+node 19_Export_Import/155.js
+node 19_Export_Import/156_test.js
+node 19_Export_Import/157.js
+```
+
+---
+
+### 20 — Classes & OOP
+
+**Concept:** A `class` is a blueprint for creating objects with shared structure. It bundles **attributes** (data, declared as fields) and **behaviour** (functions, called methods). The `new` keyword creates an **instance** (object) from the class, and the variable holds a **reference** to that object — not the object itself.
+
+**Why:** Classes are how Playwright's Page Object Model is built. Every page class (`class LoginPage`) has locators (attributes) and actions like `login()` (methods). Understanding `new`, references, and private fields (`#`) is the foundation for writing maintainable test frameworks.
+
+**Q&A — why use this?**
+- **Q: What does `new Person()` do?** A: It allocates a new object in memory, runs the class constructor, and returns a reference to that object. Without `new`, `Person()` throws a `TypeError`.
+- **Q: What is a private field (`#name`)?** A: A field prefixed with `#` is truly private — it cannot be read or written from outside the class, not even by subclasses. This is the JS-native way to hide internal state.
+- **Q: What's the difference between `pramod` and `amit`?** A: Both are references to **different** `Person` objects. `pramod === amit` is `false` because `new` creates a distinct object each time — same blueprint, separate instances.
+- **Q: What's the gotcha?** A: A class is not hoisted like a function declaration. You must define the class before you `new` it. Also, forgetting `new` throws `TypeError: Class constructor Person cannot be invoked without 'new'`.
+
+```mermaid
+flowchart TD
+    C["class Person { } — the blueprint"] --> N1["new Person() — creates object 1"]
+    C --> N2["new Person() — creates object 2"]
+    N1 --> R1["pramod = reference → object 1"]
+    N2 --> R2["amit = reference → object 2"]
+    R1 -->|"pramod === amit"| F["false — different objects"]
+```
+
+```js
+class Person {
+    // Attributes (private fields — only accessible inside the class)
+    #name;
+    #age;
+
+    // Behaviour (methods)
+    eat() {}
+    sleep() {}
+}
+
+// Create instances — each `new` produces a separate object
+let pramod = new Person();   // pramod is a reference to a new Person object
+let amit = new Person();     // amit is a reference to a different Person object
+
+// pramod === amit  →  false  (different objects, same blueprint)
+```
+
+| Term | Means |
+|------|-------|
+| `class` | Blueprint — defines what every instance will have |
+| `new` | Creates a fresh object from the class |
+| Instance | The actual object created by `new` |
+| Reference | The variable holding the object's address |
+| `#field` | Private — inaccessible from outside the class |
+| Method | A function defined inside a class |
+
+Run the lesson:
+
+```bash
+node 20_Class_Object_OOPs/158.js
+```
+
+---
+
 ## MCQ — Practice Questions
 
 **Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
@@ -2790,6 +2940,8 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 | 16 | Callbacks | Sync vs async callbacks, callback hell | ✅ |
 | 17 | Promises | States, then/catch/finally, chaining, all/allSettled/race | ✅ |
 | 18 | Async / Await | Error handling, sequential vs parallel, retries, microtask order | ✅ |
+| 19 | Export / Import (ES Modules) | Named exports, default exports, alias imports, multi-module wiring | ✅ |
+| 20 | Classes & OOP | `class` syntax, `new` keyword, private fields (`#`), object references | ✅ |
 | — | MCQ Practice | Array multiple-choice bank (more coming) | 🚧 |
 | — | IQ_Notes | Standalone concept references via prompt template | 🚧 |
 
