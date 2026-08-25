@@ -290,15 +290,16 @@ LearnPlaywright3x/
 │   ├── 153_API_Flaky.js                     # bounded retry-until-success pattern
 │   └── 154_IQ.js                            # async/await interview examples and execution order
 ├── 19_Export_Import/
+│   ├── package.json                          # scopes this chapter's .js files as ES modules
 │   ├── utils.js                              # named exports: BASE_URL, formatTestName, formatTestName2
 │   ├── testutil.js                           # named exports: BASE_URL, formatUpperCaseString
 │   ├── 155.js                                # importing named exports from testutil.js
 │   ├── 156_test.js                           # importing from two modules with alias renaming
-│   ├── 157.js                               # default import from logs/logger.js
+│   ├── 157.js                                # default import from logs/logger.js
 │   └── logs/
 │       └── logger.js                         # default export (log) + named export (logBetter)
 ├── 20_Class_Object_OOPs/
-│   └── 158.js                               # class syntax, private fields (#), new keyword, object references
+│   └── 158.js                                # class syntax, private fields (#), new keyword, object references
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -2775,7 +2776,7 @@ flowchart TD
 
 ```js
 // utils.js — named exports
-export let BASE_URL = "https://api.staging.com";
+export let BASE_URL = "https://api.example.com";
 
 export function formatTestName(name) {
     return "TC_" + name.toUpperCase();
@@ -2807,7 +2808,7 @@ console.log(formatUpperCaseString("Pramod"));       // "PRAMOD"
 // 156_test.js — importing from two modules, renaming with `as`
 import { BASE_URL as bul_util, formatTestName } from "./utils.js";
 import { BASE_URL as bul_testtul, formatUpperCaseString } from "./testutil.js";
-console.log(bul_util);                              // "https://api.staging.com"
+console.log(bul_util);                              // "https://api.example.com"
 console.log(bul_testtul);                           // "https://app.vwo.com"
 console.log(formatTestName("login"));               // "TC_LOGIN"
 
@@ -2822,7 +2823,7 @@ log('Starting');                                    // "[LOG] Starting"
 | Default | `export default function f()` | `import f from './file.js'` (any name) |
 | Rename on import | — | `import { X as alias } from './file.js'` |
 
-Run the lessons with Node.js (ES modules require `"type": "module"` in `package.json` or `.mjs` extension):
+Run the lessons with Node.js. The chapter's local `package.json` sets `"type": "module"`, so Node loads these `.js` files as ES modules without extra flags:
 
 ```bash
 node 19_Export_Import/155.js
@@ -2865,8 +2866,8 @@ class Person {
 }
 
 // Create instances — each `new` produces a separate object
-let pramod = new Person();   // pramod is a reference to a new Person object
-let amit = new Person();     // amit is a reference to a different Person object
+const pramod = new Person(); // pramod is a reference to a new Person object
+const amit = new Person();   // amit is a reference to a different Person object
 
 // pramod === amit  →  false  (different objects, same blueprint)
 ```
