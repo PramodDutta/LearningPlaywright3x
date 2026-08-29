@@ -99,6 +99,10 @@ npx playwright test 18_Async_Await/149_Example.spec.ts
 - [18 — Async / Await](#18--async--await)
 - [19 — Export / Import (ES Modules)](#19--export--import-es-modules)
 - [20 — Classes & OOP](#20--classes--oop)
+- [21 — OOP Encapsulation](#21--oop-encapsulation)
+- [22 — OOP Inheritance](#22--oop-inheritance)
+- [23 — OOP Polymorphism](#23--oop-polymorphism)
+- [24 — OOP Abstraction](#24--oop-abstraction)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -299,7 +303,20 @@ LearnPlaywright3x/
 │   └── logs/
 │       └── logger.js                         # default export (log) + named export (logBetter)
 ├── 20_Class_Object_OOPs/
-│   └── 158.js                                # class syntax, private fields (#), new keyword, object references
+│   ├── 01_Class_Object/                      # classes, constructors, objects, and automation examples
+│   ├── 02_Public_Private/                    # public and private class fields
+│   └── 03_Static_JS/                        # static fields, methods, and instance fields
+├── 21_OOPs_Ecapsulation/
+│   ├── 169.js                                # private fields with getter and setter methods
+│   ├── 170_Car.js                            # encapsulated car engine example
+│   ├── 171_Ecap_Bnak.js                      # protected balance update example
+│   └── 172_IQ.js–175_IQ.js                  # automation and interview practice
+├── 22_OOPs_Inheritance/
+│   └── Single_Inheritance/
+│       ├── 176_SI.js–179_IQ.js               # extends, super, overriding, setup, and teardown
+│       └── 180.IQ.js–182.js                  # polymorphic test, page, and report examples
+├── 23_OOPs_Polymorphism/                          # planned OOP polymorphism lessons
+├── 24_OOPs_Abstraction/                           # planned OOP abstraction lessons
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -2884,8 +2901,51 @@ const amit = new Person();   // amit is a reference to a different Person object
 Run the lesson:
 
 ```bash
-node 20_Class_Object_OOPs/158.js
+node 20_Class_Object_OOPs/01_Class_Object/158.js
 ```
+
+---
+
+### 21 — OOP Encapsulation
+
+**Concept:** Encapsulation keeps an object's internal state private and exposes controlled methods for reading or changing it. JavaScript private fields use the `#` prefix, while getter and setter methods define the permitted access.
+
+**Why:** Test frameworks often need to protect credentials, execution status, counters, and configuration from accidental direct changes. Encapsulation keeps those rules inside the class that owns the data.
+
+The lessons demonstrate private instance fields, private static fields, getter/setter methods, and validation before a private value is changed.
+
+```bash
+node 21_OOPs_Ecapsulation/169.js
+node 21_OOPs_Ecapsulation/172_IQ.js
+```
+
+---
+
+### 22 — OOP Inheritance
+
+**Concept:** Inheritance lets a child class reuse fields and methods from a parent class with `extends`. The `super()` call initializes the parent portion of an object, while `super.method()` invokes a parent implementation.
+
+**Why:** Playwright page objects and test classes commonly share setup, teardown, navigation, and verification behaviour through base classes. Child classes can reuse that behaviour or override it for a specific page or test type.
+
+The lessons cover single inheritance, constructor chaining, parent-method calls, method overriding, and polymorphic collections of test, page, and report objects.
+
+```bash
+node 22_OOPs_Inheritance/Single_Inheritance/176_SI.js
+node 22_OOPs_Inheritance/Single_Inheritance/177.js
+node 22_OOPs_Inheritance/Single_Inheritance/180.IQ.js
+```
+
+---
+
+### 23 — OOP Polymorphism
+
+Folder created for upcoming lessons on one shared method interface producing class-specific behaviour.
+
+---
+
+### 24 — OOP Abstraction
+
+Folder created for upcoming lessons on exposing essential operations while hiding implementation details.
 
 ---
 
@@ -2943,6 +3003,10 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 | 18 | Async / Await | Error handling, sequential vs parallel, retries, microtask order | ✅ |
 | 19 | Export / Import (ES Modules) | Named exports, default exports, alias imports, multi-module wiring | ✅ |
 | 20 | Classes & OOP | `class` syntax, `new` keyword, private fields (`#`), object references | ✅ |
+| 21 | OOP Encapsulation | Private fields, getters/setters, controlled state changes, private static fields | ✅ |
+| 22 | OOP Inheritance | `extends`, `super`, constructor chaining, method overriding | ✅ |
+| 23 | OOP Polymorphism | Shared interfaces and class-specific method behaviour | 🚧 |
+| 24 | OOP Abstraction | Essential interfaces and hidden implementation details | 🚧 |
 | — | MCQ Practice | Array multiple-choice bank (more coming) | 🚧 |
 | — | IQ_Notes | Standalone concept references via prompt template | 🚧 |
 

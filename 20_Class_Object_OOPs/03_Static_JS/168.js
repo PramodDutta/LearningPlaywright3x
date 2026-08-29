@@ -7,3 +7,4 @@ class Car{
     }
 }
 let obj= new Car();
+let obj2= new Car();
