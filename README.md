@@ -101,8 +101,13 @@ npx playwright test 18_Async_Await/149_Example.spec.ts
 - [20 — Classes & OOP](#20--classes--oop)
 - [21 — OOP Encapsulation](#21--oop-encapsulation)
 - [22 — OOP Inheritance](#22--oop-inheritance)
+  - [22.1 — Single Inheritance](#221--single-inheritance)
+  - [22.2 — Multiple Inheritance & Mixins](#222--multiple-inheritance--mixins)
+  - [22.3 — Multi-Level Inheritance](#223--multi-level-inheritance)
+  - [22.4 — Hierarchical Inheritance](#224--hierarchical-inheritance)
 - [23 — OOP Polymorphism](#23--oop-polymorphism)
-- [24 — OOP Abstraction](#24--oop-abstraction)
+- [24 — OOP Interview Practice](#24--oop-interview-practice)
+- [25 — TypeScript](#25--typescript)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -312,11 +317,30 @@ LearnPlaywright3x/
 │   ├── 171_Ecap_Bnak.js                      # protected balance update example
 │   └── 172_IQ.js–175_IQ.js                  # automation and interview practice
 ├── 22_OOPs_Inheritance/
-│   └── Single_Inheritance/
-│       ├── 176_SI.js–179_IQ.js               # extends, super, overriding, setup, and teardown
-│       └── 180.IQ.js–182.js                  # polymorphic test, page, and report examples
-├── 23_OOPs_Polymorphism/                          # planned OOP polymorphism lessons
-├── 24_OOPs_Abstraction/                           # planned OOP abstraction lessons
+│   ├── 01_Single_Inheritance/
+│   │   ├── 176_SI.js–179_IQ.js               # extends, super, overriding, setup, and teardown
+│   │   └── 180.IQ.js–182.js                  # polymorphic test, page, and report examples
+│   ├── 02_Multiple_Inheritance/
+│   │   ├── 178.js                            # why `extends F1, F2` is a syntax error in JS
+│   │   └── 179.js                            # mixins — compose logging + screenshot abilities
+│   ├── 03_Multi_Level_Inheritance/
+│   │   └── 180.js                            # BasePage → AuthPage → AdminPage chain
+│   └── 04_Hierarchial_Inheritance/
+│       └── 181.js                            # one Father, three sibling Sons
+├── 23_OOPs_Polymorphism/
+│   └── 182_Method_Overriding.js              # child setup() overrides the parent at runtime
+├── 24_OOPs_Interview/
+│   ├── EX1.js–EX3.js                         # constructors, default params, per-instance state
+│   ├── EX4.js                                # `return this` → method chaining
+│   ├── EX5.js                                # three-level super chain → "C>B>A"
+│   ├── 195_IQ.ts                             # typed helpers — string, boolean, void returns
+│   └── 196.ts                                # number[] param + typed filter callback
+├── 25_Typescript/
+│   ├── 183.js                                # the untyped JS starting point
+│   ├── 184.ts / 184.js                       # typed source vs its compiled output
+│   ├── 185.ts–188.ts                         # void returns, primitives, arrays, any vs unknown
+│   └── 190.ts–194.ts                         # arrows, object shapes, void and never
+├── tsconfig.json                             # strict TS config for the .ts lessons
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
 └── IQ_Notes/
@@ -2923,29 +2947,356 @@ node 21_OOPs_Ecapsulation/172_IQ.js
 
 ### 22 — OOP Inheritance
 
-**Concept:** Inheritance lets a child class reuse fields and methods from a parent class with `extends`. The `super()` call initializes the parent portion of an object, while `super.method()` invokes a parent implementation.
+**Concept:** Inheritance lets a child class reuse fields and methods from a parent class with `extends`. `super()` initializes the parent portion of the object, `super.method()` calls a parent implementation. The chapter is now split into the four classic inheritance shapes, one folder each.
 
-**Why:** Playwright page objects and test classes commonly share setup, teardown, navigation, and verification behaviour through base classes. Child classes can reuse that behaviour or override it for a specific page or test type.
+**Why:** Playwright page objects and test classes share setup, teardown, navigation, and verification. A base class owns that behaviour once, and every page or test type inherits it instead of copy-pasting it.
 
-The lessons cover single inheritance, constructor chaining, parent-method calls, method overriding, and polymorphic collections of test, page, and report objects.
+**Q&A — why use this?**
+- **Q: When do I reach for `extends`?** A: When two or more classes share the same setup/teardown or navigation logic. Put the shared part in a `BasePage`/`BaseTest` and let children inherit it.
+- **Q: What does it replace?** A: Duplicated helper functions and copy-pasted `beforeEach` blocks scattered across spec files.
+- **Q: What's the gotcha?** A: If a child declares a `constructor`, you **must** call `super(...)` before touching `this`, otherwise you get `ReferenceError: Must call super constructor`.
+
+```mermaid
+flowchart TD
+    A["22 — Inheritance"] --> S["01 Single<br/>Father → Son"]
+    A --> M["02 Multiple<br/>❌ not supported → Mixins"]
+    A --> L["03 Multi-Level<br/>Grandfather → Father → Son"]
+    A --> H["04 Hierarchical<br/>one Father → many Sons"]
+```
+
+| Type | Shape | Supported in JS? | Folder |
+|------|-------|:----------------:|--------|
+| Single | `Son extends Father` | ✅ | `01_Single_Inheritance/` |
+| Multiple | `Son extends F1, F2` | ❌ — use mixins | `02_Multiple_Inheritance/` |
+| Multi-Level | `A → B → C` | ✅ | `03_Multi_Level_Inheritance/` |
+| Hierarchical | one parent, many children | ✅ | `04_Hierarchial_Inheritance/` |
+
+---
+
+#### 22.1 — Single Inheritance
+
+**Concept:** One child class extends exactly one parent class, inheriting all its public fields and methods.
+
+**Why:** This is the everyday shape of a test framework — every page object extends one `BasePage`.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: The moment a second class needs the same `open()` / `waitForLoad()` behaviour you already wrote once.
+- **Q: What does it replace?** A: A utility module of loose functions that every class has to import and re-wire manually.
+- **Q: What's the gotcha?** A: Inherited methods still run with the **child's** `this`, so a parent method can read fields the parent never declared.
+
+```mermaid
+flowchart TD
+    F["class Father"] --> S["class Son extends Father"]
+    S -->|"super()"| F
+```
+
+```js
+class BasePage {
+    constructor(name) { this.name = name; }
+    open() { console.log("[OPEN] " + this.name); }
+}
+
+class LoginPage extends BasePage {
+    login(user) { console.log("[LOGIN] " + user); }
+}
+
+const page = new LoginPage("Login Page");
+page.open();          // inherited from BasePage
+page.login("pramod"); // defined on LoginPage
+```
 
 ```bash
-node 22_OOPs_Inheritance/Single_Inheritance/176_SI.js
-node 22_OOPs_Inheritance/Single_Inheritance/177.js
-node 22_OOPs_Inheritance/Single_Inheritance/180.IQ.js
+node 22_OOPs_Inheritance/01_Single_Inheritance/176_SI.js
+```
+
+---
+
+#### 22.2 — Multiple Inheritance & Mixins
+
+**Concept:** JavaScript has **no** multiple inheritance — `class Son extends F1, F2` is a syntax error. The workaround is a **mixin**: a function that takes a base class and returns a new class extending it, so you can compose several of them.
+
+**Why:** A test class often needs several independent abilities (logging, screenshots, retries) that do not belong on one shared parent.
+
+**Q&A — why use this?**
+- **Q: When do I reach for a mixin?** A: When abilities are orthogonal — a `SmartTest` needs both logging and screenshots, but neither is "the" parent.
+- **Q: What does it replace?** A: A bloated god-class base that every test inherits just to reach one helper.
+- **Q: What's the gotcha?** A: Order matters. `ScreenshotMixin(LoggerMixin(TestCase))` builds the chain inside-out, and a later mixin can shadow an earlier one's method of the same name.
+
+```mermaid
+flowchart LR
+    T["TestCase"] --> LM["LoggerMixin&#40;TestCase&#41;"]
+    LM --> SM["ScreenshotMixin&#40;...&#41;"]
+    SM --> ST["class SmartTest"]
+    ST --> R["run&#40;&#41; + log&#40;&#41; + takeScreenshot&#40;&#41;"]
+```
+
+```js
+const LoggerMixin = (Base) => class extends Base {
+    log(msg) { console.log("[Log] " + msg); }
+};
+
+const ScreenshotMixin = (Base) => class extends Base {
+    takeScreenshot() { console.log("[SCREENSHOT] captured"); }
+};
+
+class TestCase {
+    constructor(name) { this.name = name; }
+    run() { console.log("Running: " + this.name); }
+}
+
+class SmartTest extends ScreenshotMixin(LoggerMixin(TestCase)) {}
+
+const t = new SmartTest("Login Flow");
+t.run();              // Running: Login Flow
+t.log("Test started");// [Log] Test started
+t.takeScreenshot();   // [SCREENSHOT] captured
+```
+
+```bash
+node 22_OOPs_Inheritance/02_Multiple_Inheritance/179.js
+```
+
+> `02_Multiple_Inheritance/178.js` is intentionally broken — it shows the `extends F1, F2` syntax error you are meant to see once.
+
+---
+
+#### 22.3 — Multi-Level Inheritance
+
+**Concept:** A chain of three or more classes, where each level extends the one above it: `BasePage → AuthPage → AdminPage`.
+
+**Why:** Real apps have layered pages — every page can open, only logged-in pages can `login()`, only admin pages can `manageUsers()`.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: When a subset of your pages shares extra behaviour that the very top base class should not know about.
+- **Q: What does it replace?** A: Duplicating auth helpers into every authenticated page object.
+- **Q: What's the gotcha?** A: Deep chains get fragile. Three levels is usually the practical limit — past that, prefer composition or mixins.
+
+```mermaid
+flowchart TD
+    B["BasePage — open&#40;&#41;"] --> A["AuthPage — login&#40;&#41;"]
+    A --> AD["AdminPage — manageUsers&#40;&#41;"]
+    AD -->|"inherits both"| ALL["open&#40;&#41; + login&#40;&#41; + manageUsers&#40;&#41;"]
+```
+
+```js
+class BasePage {
+    constructor(name) { this.name = name; }
+    open() { console.log("[OPEN] " + this.name); }
+}
+
+class AuthPage extends BasePage {
+    login(user) { console.log("[LOGIN] " + user); }
+}
+
+class AdminPage extends AuthPage {
+    constructor() { super("Admin Panel"); }   // walks the chain up to BasePage
+    manageUsers() { console.log("[ADMIN] Managing users"); }
+}
+
+const admin = new AdminPage();
+admin.open();               // from BasePage
+admin.login("superadmin");  // from AuthPage
+admin.manageUsers();        // from AdminPage
+```
+
+```bash
+node 22_OOPs_Inheritance/03_Multi_Level_Inheritance/180.js
+```
+
+---
+
+#### 22.4 — Hierarchical Inheritance
+
+**Concept:** One parent class, many sibling children. `Son1`, `Son2`, and `Son3` all extend the same `Father` but never each other.
+
+**Why:** This is what a page-object suite actually looks like: one `BasePage`, and `LoginPage` / `CartPage` / `CheckoutPage` all branching off it.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: Whenever several unrelated pages or test types need the same bootstrapping.
+- **Q: What does it replace?** A: The same constructor and `open()` written N times across N page objects.
+- **Q: What's the gotcha?** A: Siblings are isolated — a change in `Son1` is invisible to `Son2`. Shared behaviour has to move **up** into `Father`, not sideways.
+
+```mermaid
+flowchart TD
+    F["class Father"] --> S1["class Son1 extends Father"]
+    F --> S2["class Son2 extends Father"]
+    F --> S3["class Son3 extends Father"]
+```
+
+```js
+class Father {
+    open() { console.log("[OPEN] base ready"); }
+}
+
+class Son1 extends Father {}
+class Son2 extends Father {}
+class Son3 extends Father {}
+
+[new Son1(), new Son2(), new Son3()].forEach(child => child.open());
+```
+
+```bash
+node 22_OOPs_Inheritance/04_Hierarchial_Inheritance/181.js
 ```
 
 ---
 
 ### 23 — OOP Polymorphism
 
-Folder created for upcoming lessons on one shared method interface producing class-specific behaviour.
+**Concept:** Polymorphism means "many forms" — the same method name behaves differently depending on the class of the object calling it. **Method overriding** is the core mechanism: a child redefines a method that already exists on the parent, and JavaScript resolves it at runtime from the actual object, not the variable type.
+
+**Why:** A test runner can loop over a mixed array of `UITest`, `APITest`, and `DBTest` objects and call `setup()` on each one, without a single `if`/`switch` on the test type. Each class supplies its own setup.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: When several classes share an interface (`setup`, `run`, `teardown`) but each needs its own implementation.
+- **Q: What does it replace?** A: A long `switch (testType)` block that has to be edited every time a new test type is added.
+- **Q: What's the gotcha?** A: JavaScript has **no method overloading** — declaring `setup()` twice in the same class does not create two signatures, the second silently wins. Only overriding across parent/child is real polymorphism here.
+
+```mermaid
+flowchart TD
+    B["BaseTest.setup&#40;&#41; — 'Base: open browser'"] --> A["APIPage extends BaseTest"]
+    A --> O["APIPage.setup&#40;&#41; overrides it"]
+    C["test.setup&#40;&#41;"] --> R{"which object?"}
+    R -->|"new APIPage&#40;&#41;"| O
+    R -->|"new BaseTest&#40;&#41;"| B
+```
+
+```js
+class BaseTest {
+    setup() { console.log("Base: open browser"); }
+}
+
+class APIPage extends BaseTest {
+    setup() { console.log("APITest: open browser"); } // overrides the parent
+}
+
+const btest = new BaseTest();
+const test = new APIPage();
+
+test.setup();  // APITest: open browser  ← child wins
+btest.setup(); // Base: open browser
+```
+
+| Term | Means | In JS? |
+|------|-------|:------:|
+| Overriding | Child redefines a parent method | ✅ |
+| Overloading | Same name, different parameter lists | ❌ — use default/rest params |
+| `super.method()` | Call the parent version from the child | ✅ |
+| Runtime dispatch | The **object**, not the variable, picks the method | ✅ |
+
+```bash
+node 23_OOPs_Polymorphism/182_Method_Overriding.js
+```
 
 ---
 
-### 24 — OOP Abstraction
+### 24 — OOP Interview Practice
 
-Folder created for upcoming lessons on exposing essential operations while hiding implementation details.
+**Concept:** A drill folder of short, self-contained OOP problems (`EX1`–`EX5`) plus the first TypeScript-flavoured interview questions (`195_IQ.ts`, `196.ts`). Each file is one predict-the-output exercise: constructors, default parameters, method chaining with `return this`, and a three-level `super` chain.
+
+**Why:** Interviews test OOP through tiny traps, not big frameworks. These are the exact shapes that come up — "what does `new C().who()` print?" — and running them after predicting the answer is the fastest way to close the gap.
+
+**Q&A — why use this?**
+- **Q: What does `return this` buy me?** A: Method chaining. `new Counter().increment().increment().display()` works only because every method hands the same object back.
+- **Q: How do default parameters work in a constructor?** A: `constructor(name = "staging", port = 3000)` — `new Environment()` uses both defaults, `new Environment("production", 8080)` overrides both.
+- **Q: What does `super.who()` resolve to in a three-level chain?** A: The **immediate** parent's version, which itself may call `super`. `C → B → A` prints `C>B>A`.
+
+```mermaid
+flowchart LR
+    C["new C&#40;&#41;.who&#40;&#41;"] --> B["super.who&#40;&#41; → B"]
+    B --> A["super.who&#40;&#41; → A"]
+    A --> OUT["'C>B>A'"]
+```
+
+```js
+class A { who() { return "A"; } }
+class B extends A { who() { return "B>" + super.who(); } }
+class C extends B { who() { return "C>" + super.who(); } }
+
+console.log(new C().who()); // C>B>A
+
+class Counter {
+    constructor() { this.count = 0; }
+    increment() { this.count++; return this; }  // return this → chainable
+    display() { console.log("Count:", this.count); return this; }
+}
+new Counter().increment().increment().increment().display(); // Count: 3
+```
+
+| File | Drills |
+|------|--------|
+| [`EX1.js`](24_OOPs_Interview/EX1.js) | Constructor + method — a `Bug` with title and severity |
+| [`EX2.js`](24_OOPs_Interview/EX2.js) | Default parameters — `Environment` staging vs production URLs |
+| [`EX3.js`](24_OOPs_Interview/EX3.js) | Two instances, separate state |
+| [`EX4.js`](24_OOPs_Interview/EX4.js) | `return this` → method chaining |
+| [`EX5.js`](24_OOPs_Interview/EX5.js) | Three-level `super` chain → `C>B>A` |
+| [`195_IQ.ts`](24_OOPs_Interview/195_IQ.ts) | Typed helpers: `string`, `boolean`, `void` return types |
+| [`196.ts`](24_OOPs_Interview/196.ts) | `number[]` param + typed `filter` callback |
+
+```bash
+node 24_OOPs_Interview/EX5.js
+npx tsx 24_OOPs_Interview/196.ts
+```
+
+---
+
+### 25 — TypeScript
+
+**Concept:** TypeScript is JavaScript plus a static type layer — *TS = JS + rules*. You annotate variables, parameters, and return values (`let name: string`, `function add(a: number, b: number): number`), the compiler checks them, then erases every type and emits plain JavaScript. Nothing about the runtime changes.
+
+**Why:** Playwright's own API is written in TypeScript. Typed page objects catch a wrong locator argument or a misspelled method at edit time, in the editor, instead of five minutes into a CI run.
+
+**Q&A — why use this?**
+- **Q: When do I reach for `unknown` instead of `any`?** A: Always, when the shape is genuinely unknown. `any` disables checking entirely, `unknown` forces a `typeof` narrow before you can use the value — the safety `any` throws away.
+- **Q: What does `void` vs `never` mean on a return type?** A: `void` — the function returns nothing but does finish. `never` — it never returns at all, because it throws or loops forever.
+- **Q: What's the gotcha?** A: Types vanish at runtime. `let age: number` will not stop a JSON response from putting a string there, so API payloads still need runtime validation.
+
+```mermaid
+flowchart LR
+    TS["184.ts — typed source"] -->|"tsc"| CHECK{"type check"}
+    CHECK -->|"error"| FIX["fix before running"]
+    CHECK -->|"ok"| JS["184.js — plain JS, types erased"]
+    JS --> NODE["node runs it"]
+```
+
+```ts
+// Annotations: variable, parameters, return type
+let testName1: string = "Login test";
+function add_ts(a: number, b: number): number {
+    return a + b;
+}
+
+// unknown is safer than any — must narrow before use
+let payload: unknown = "hello";
+if (typeof payload === "string") console.log(payload.toUpperCase());
+
+// void returns nothing, never returns at all
+function logTestStep(step: string): void { console.log("[STEP] " + step); }
+function throwError(message: string): never { throw new Error(message); }
+
+// Typed arrays + typed callback — filter failed HTTP codes
+const responseCode: number[] = [200, 201, 404, 500, 302, 403];
+const failed: number[] = responseCode.filter((code: number): boolean => code >= 400);
+console.log("Failed Codes", failed); // [ 404, 500, 403 ]
+```
+
+| Annotation | Example | Note |
+|------------|---------|------|
+| `string` / `number` / `boolean` | `let age: number = 30` | No separate `int` / `float` — all numbers are `number` |
+| `null` / `undefined` | `let nothing: null = null` | Distinct types under `strict` |
+| Array | `number[]` or `Array<string>` | Two spellings, same meaning |
+| `any` | `let x: any` | Escape hatch — avoid |
+| `unknown` | `let x: unknown` | Safe `any`, requires narrowing |
+| Object | `{ name: string; age: number }` | Inline shape |
+| `void` | `function f(): void` | Returns nothing |
+| `never` | `function f(): never` | Throws or loops forever |
+
+Compare `183.js` (untyped) with `184.ts` (typed) and `184.js` (the compiled output) to see exactly what the compiler strips. [`tsconfig.json`](tsconfig.json) at the repo root turns on `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes`.
+
+```bash
+npx tsc 25_Typescript/184.ts     # compile → 184.js
+npx tsx 25_Typescript/186.ts     # or run a .ts file directly
+```
 
 ---
 
@@ -2976,7 +3327,7 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 
 ---
 
-> **TL;DR:** A from-scratch JavaScript fundamentals course for test automation, plus a GenAI prompting folder, an MCQ self-test bank, and an IQ_Notes reference library.
+> **TL;DR:** A from-scratch JavaScript-to-TypeScript course for test automation, plus a GenAI prompting folder, an MCQ self-test bank, and an IQ_Notes reference library.
 
 ## Progress Tracker
 
@@ -3004,9 +3355,10 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 | 19 | Export / Import (ES Modules) | Named exports, default exports, alias imports, multi-module wiring | ✅ |
 | 20 | Classes & OOP | `class` syntax, `new` keyword, private fields (`#`), object references | ✅ |
 | 21 | OOP Encapsulation | Private fields, getters/setters, controlled state changes, private static fields | ✅ |
-| 22 | OOP Inheritance | `extends`, `super`, constructor chaining, method overriding | ✅ |
-| 23 | OOP Polymorphism | Shared interfaces and class-specific method behaviour | 🚧 |
-| 24 | OOP Abstraction | Essential interfaces and hidden implementation details | 🚧 |
+| 22 | OOP Inheritance | Single, multiple (mixins), multi-level, hierarchical, `extends`, `super` | ✅ |
+| 23 | OOP Polymorphism | Method overriding, runtime dispatch, why JS has no overloading | ✅ |
+| 24 | OOP Interview Practice | Constructors, default params, `return this` chaining, `super` chains | ✅ |
+| 25 | TypeScript | Annotations, primitives, arrays, `any` vs `unknown`, `void` vs `never` | ✅ |
 | — | MCQ Practice | Array multiple-choice bank (more coming) | 🚧 |
 | — | IQ_Notes | Standalone concept references via prompt template | 🚧 |
 
