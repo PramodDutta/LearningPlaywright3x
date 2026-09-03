@@ -108,6 +108,7 @@ npx playwright test 18_Async_Await/149_Example.spec.ts
 - [23 — OOP Polymorphism](#23--oop-polymorphism)
 - [24 — OOP Interview Practice](#24--oop-interview-practice)
 - [25 — TypeScript](#25--typescript)
+- [26 — TypeScript Abstractions](#26--typescript-abstractions)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -340,6 +341,18 @@ LearnPlaywright3x/
 │   ├── 184.ts / 184.js                       # typed source vs its compiled output
 │   ├── 185.ts–188.ts                         # void returns, primitives, arrays, any vs unknown
 │   └── 190.ts–194.ts                         # arrows, object shapes, void and never
+├── 26_OOPs_TS_Abstractions/
+│   ├── Interface/
+│   │   ├── 197_Interface.ts                  # interface as a reusable object shape
+│   │   ├── 198_Readyonly.ts                  # readonly properties cannot be reassigned
+│   │   ├── 199_Interface_PageObject.ts       # interface inheritance for page objects
+│   │   ├── 200_API_Response.ts               # optional properties on API responses
+│   │   └── 201_Method_In.ts                  # methods declared on an interface
+│   ├── 202_Interface_Hook.ts                 # callable interface for before/after hooks
+│   ├── 203_REAL_Config.ts                    # optional timeout and retries on test config
+│   ├── 204_Class_Interface.ts                # class implements an interface contract
+│   ├── 205_Interface_Misc.ts                 # index signature — string-to-string map
+│   └── 206.js                                # parameterized constructor recap
 ├── tsconfig.json                             # strict TS config for the .ts lessons
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
@@ -3300,6 +3313,84 @@ npx tsx 25_Typescript/186.ts     # or run a .ts file directly
 
 ---
 
+### 26 — TypeScript Abstractions
+
+**Concept:** An `interface` is a compile-time contract — a named shape that objects and classes must satisfy. It lists required fields, optional fields (`timeout?`), `readonly` fields, methods, and even call signatures. Interfaces can `extend` each other, and a `class` can `implements` one. Like every TypeScript type, the interface is erased at runtime.
+
+**Why:** Playwright page objects, API responses, and test config are all "objects with a known shape." An interface names that shape once (`BasePage`, `APIResponse`, `TestConfig`) so every login page, every HTTP payload, and every CI config is checked against the same contract — before the test runs.
+
+**Q&A — why use this?**
+- **Q: When do I reach for an `interface` instead of an inline `{ name: string }`?** A: The moment a second object needs the same shape. Name it once (`interface User`) and reuse it — that is what `197_Interface.ts` does with `user1` / `user2` / `user3`.
+- **Q: What does `extends` vs `implements` mean here?** A: `interface LoginPage extends BasePage` inherits fields from another interface. `class TestCase implements Executable` is a class promising to supply every field and method the interface listed.
+- **Q: What's the gotcha?** A: Optional (`headers?`) means the property may be missing, not that it can be the wrong type. `readonly x` blocks reassignment after creation (`point.x = 5` is a compile error). And a callable interface like `TestHook` types a *function*, not an object — `beforeEachHook("Login Test")` is a call, not a property access.
+
+```mermaid
+flowchart TD
+    I["interface User"] --> U1["user1: User"]
+    I --> U2["user2: User"]
+    I --> U3["user3: User"]
+    BP["interface BasePage"] --> LP["LoginPage extends BasePage"]
+    BP --> FT["FreeTrailPage extends BasePage"]
+    E["interface Executable"] --> TC["class TestCase implements Executable"]
+```
+
+```ts
+interface User {
+    name: string;
+    age: number;
+    email: string;
+}
+const user1: User = { name: "John", age: 30, email: "abc@gmail.com" };
+
+interface BasePage { url: string; title: string; }
+interface LoginPage extends BasePage {
+    usernameSelector: string;
+    passwordSelector: string;
+    loginButtonSelector: string;
+}
+
+interface APIResponse {
+    statuscode: number;
+    body: string;
+    headers?: object;          // optional — may be omitted
+    responseTime: number;
+}
+
+interface Executable {
+    name: string;
+    run(): void;
+    getStatus(): string;
+}
+class TestCase implements Executable {
+    name: string;
+    constructor(name: string) { this.name = name; }
+    run(): void { console.log("[RUN] " + this.name); }
+    getStatus(): string { return "PASS"; }
+}
+```
+
+| File | Drills |
+|------|--------|
+| [`197_Interface.ts`](26_OOPs_TS_Abstractions/Interface/197_Interface.ts) | Reusable `User` shape — three objects, one contract |
+| [`198_Readyonly.ts`](26_OOPs_TS_Abstractions/Interface/198_Readyonly.ts) | `readonly x` / `readonly y` — assignment after create is a compile error |
+| [`199_Interface_PageObject.ts`](26_OOPs_TS_Abstractions/Interface/199_Interface_PageObject.ts) | `LoginPage` / `FreeTrailPage` extend `BasePage` |
+| [`200_API_Response.ts`](26_OOPs_TS_Abstractions/Interface/200_API_Response.ts) | Optional `headers?` on an API response |
+| [`201_Method_In.ts`](26_OOPs_TS_Abstractions/Interface/201_Method_In.ts) | Methods on an interface — `add` / `subtract` |
+| [`202_Interface_Hook.ts`](26_OOPs_TS_Abstractions/202_Interface_Hook.ts) | Callable interface — `beforeEach` / `afterEach` hooks |
+| [`203_REAL_Config.ts`](26_OOPs_TS_Abstractions/203_REAL_Config.ts) | Local vs CI `TestConfig` with optional `timeout` / `retries` |
+| [`204_Class_Interface.ts`](26_OOPs_TS_Abstractions/204_Class_Interface.ts) | `class TestCase implements Executable` |
+| [`205_Interface_Misc.ts`](26_OOPs_TS_Abstractions/205_Interface_Misc.ts) | Index signature — `[key: string]: string` |
+| [`206.js`](26_OOPs_TS_Abstractions/206.js) | Parameterized constructor recap (`Car`) |
+
+```bash
+npx tsx 26_OOPs_TS_Abstractions/Interface/199_Interface_PageObject.ts
+npx tsx 26_OOPs_TS_Abstractions/203_REAL_Config.ts
+npx tsx 26_OOPs_TS_Abstractions/202_Interface_Hook.ts
+node 26_OOPs_TS_Abstractions/206.js
+```
+
+---
+
 ## MCQ — Practice Questions
 
 **Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
@@ -3359,7 +3450,8 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 | 23 | OOP Polymorphism | Method overriding, runtime dispatch, why JS has no overloading | ✅ |
 | 24 | OOP Interview Practice | Constructors, default params, `return this` chaining, `super` chains | ✅ |
 | 25 | TypeScript | Annotations, primitives, arrays, `any` vs `unknown`, `void` vs `never` | ✅ |
+| 26 | TypeScript Abstractions | Interfaces, `readonly`, optional props, `extends`, `implements`, callable hooks, index signatures | ✅ |
 | — | MCQ Practice | Array multiple-choice bank (more coming) | 🚧 |
 | — | IQ_Notes | Standalone concept references via prompt template | 🚧 |
 
-**Suggested next chapters:** Playwright fixtures · Page Object Model · API testing with `request` · Network interception
+**Suggested next chapters:** Abstract classes · Enums · Playwright fixtures · Page Object Model · API testing with `request`
