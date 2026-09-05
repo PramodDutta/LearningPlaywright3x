@@ -109,6 +109,10 @@ npx playwright test 18_Async_Await/149_Example.spec.ts
 - [24 — OOP Interview Practice](#24--oop-interview-practice)
 - [25 — TypeScript](#25--typescript)
 - [26 — TypeScript Abstractions](#26--typescript-abstractions)
+- [27 — TypeScript Enums](#27--typescript-enums)
+- [28 — TypeScript Generics](#28--typescript-generics)
+- [29 — TypeScript Access Modifiers](#29--typescript-access-modifiers)
+- [31 — TypeScript Abstract Classes](#31--typescript-abstract-classes)
 - [MCQ — Practice Questions](#mcq--practice-questions)
 - [IQ_Notes — Reference Library](#iq_notes--reference-library)
 
@@ -353,6 +357,23 @@ LearnPlaywright3x/
 │   ├── 204_Class_Interface.ts                # class implements an interface contract
 │   ├── 205_Interface_Misc.ts                 # index signature — string-to-string map
 │   └── 206.js                                # parameterized constructor recap
+├── 27_Typescript_ENUM/
+│   ├── 205_ENUM.ts                           # TestStatus string enum
+│   ├── 206_ENUM.ts                           # SeverityLevels string enum
+│   ├── 207_REAL_Enum.ts                      # Environment enum, one member per base URL
+│   ├── 208_REAL_Browser_PW.ts                # enum as a parameter type driving a switch
+│   └── 209_API_REAL.ts                       # HTTPMethod enum passed to sendRequest
+├── 28_Typescript_Generic/
+│   ├── 210_Generic.ts                        # generic function <T> over number/string/boolean
+│   ├── 211_Generic_Class.ts                  # generic class TestDataStorage<T>
+│   └── 212_API_Response.ts                   # generic response wrapper { statusCode, data: T }
+├── 29_Typescript_PRIVATE_PUBLIC_PROTECTED/
+│   ├── 213_PPP.ts                            # public vs private vs protected on an APIClient
+│   ├── 214_PageObjectModel.ts                # protected navigate() reused by LoginPage
+│   └── 215_Redaonly.ts                       # private readonly Playwright config
+├── 30_Typescript_Override_Decorator/         # planned: the @override decorator (empty for now)
+├── 31_Typescript_Abstract_Class/
+│   └── 216_Abstract.ts                       # abstract BaseTest lifecycle + concrete UITest
 ├── tsconfig.json                             # strict TS config for the .ts lessons
 ├── MCQ/
 │   └── Array_MCQ.md                         # array practice multiple-choice questions
@@ -3391,6 +3412,258 @@ node 26_OOPs_TS_Abstractions/206.js
 
 ---
 
+### 27 — TypeScript Enums
+
+**Concept:** An `enum` is a named set of allowed constants. A string enum (`enum TestStatus { Pass = "PASS" }`) gives every member a readable value, and the enum name itself becomes a **type**, so `browser: Browser` will only accept one of the four members.
+
+**Why:** Test code is full of fixed vocabularies (status, severity, environment, browser, HTTP method) that usually get typed as bare strings. One typo (`"chrom"`) then fails silently at runtime. An enum turns that typo into a compile error.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: Whenever a value comes from a closed list you control: `PASS / FAIL / SKIP`, `dev / staging / qa / prod`, `GET / POST / PUT / DELETE`.
+- **Q: What does it replace?** A: Scattered magic strings and a `const STATUS = { ... }` object that gives you no type safety on the consuming side.
+- **Q: What's the gotcha?** A: Prefer **string** enums over numeric ones. A numeric enum auto-assigns `0, 1, 2`, so a failed status logs as `1` instead of `"FAIL"`, and reordering the members silently changes every stored value.
+
+```mermaid
+flowchart TD
+    E["enum Browser"] --> C["Chrome = 'chrome'"]
+    E --> F["Firefox = 'firefox'"]
+    E --> S["Safari = 'safari'"]
+    E --> D["Edge = 'edge'"]
+    C --> SW["switch &#40;browser&#41;"]
+    F --> SW
+    S --> SW
+    D --> SW
+    SW --> L["launch the matching engine"]
+    X["launchBrowser&#40;'chrom'&#41;"] -.->|"compile error"| SW
+```
+
+```ts
+enum Browser {
+    Chrome = "chrome",
+    Firefox = "firefox",
+    Safari = "safari",
+    Edge = "edge"
+}
+
+function launchBrowser(browser: Browser): void {
+    switch (browser) {
+        case Browser.Chrome:  console.log("Launching Chromium (Chrome v120)"); break;
+        case Browser.Firefox: console.log("Launching Gecko (Firefox v115)");   break;
+        case Browser.Safari:  console.log("Launching WebKit (Safari v17)");    break;
+        case Browser.Edge:    console.log("Launching Chromium (Edge v120)");   break;
+    }
+}
+
+launchBrowser(Browser.Chrome); // Launching Chromium (Chrome v120)
+// launchBrowser("chrom");     // compile error, not a Browser member
+```
+
+| File | Drills |
+|------|--------|
+| [`205_ENUM.ts`](27_Typescript_ENUM/205_ENUM.ts) | `TestStatus`: Pass / Fail / Skip / Pending / Blocked |
+| [`206_ENUM.ts`](27_Typescript_ENUM/206_ENUM.ts) | `SeverityLevels`: low through blocking |
+| [`207_REAL_Enum.ts`](27_Typescript_ENUM/207_REAL_Enum.ts) | `Environment`: one enum member per base URL |
+| [`208_REAL_Browser_PW.ts`](27_Typescript_ENUM/208_REAL_Browser_PW.ts) | Enum as a function parameter type, driving a `switch` |
+| [`209_API_REAL.ts`](27_Typescript_ENUM/209_API_REAL.ts) | `HTTPMethod` passed into a `sendRequest` helper |
+
+```bash
+npx tsx 27_Typescript_ENUM/208_REAL_Browser_PW.ts
+npx tsx 27_Typescript_ENUM/209_API_REAL.ts
+```
+
+---
+
+### 28 — TypeScript Generics
+
+**Concept:** A generic is a **type parameter**: `function getFirstResult<T>(result: T[]): T`. The caller supplies the real type at the call site (`getFirstResult<number>([200, 400])`), and TypeScript propagates it through the parameters and the return type. One implementation, many types, zero `any`.
+
+**Why:** Test utilities are naturally shape-agnostic: a data store, a "first result" helper, an API response wrapper. Without generics you either write the same function per type or fall back to `any` and throw away every guarantee at the boundary.
+
+**Q&A — why use this?**
+- **Q: When do I reach for it?** A: When a function or class works the same way regardless of the element type, but callers still need the **specific** type back. `getFirstResult<string>(...)` returns a `string`, not `any`.
+- **Q: What does it replace?** A: A pile of near-identical overloads (`getFirstNumber`, `getFirstString`) or a lazy `any[]` signature.
+- **Q: What's the gotcha?** A: With `noUncheckedIndexedAccess` on (see [`tsconfig.json`](tsconfig.json)), `result[0]` is typed `T | undefined` because an empty array is legal. `210_Generic.ts` uses `result[0]!`, the non-null assertion, to silence it. That `!` is a promise to the compiler, not a runtime check, so an empty array still returns `undefined`.
+
+```mermaid
+flowchart LR
+    G["getFirstResult&lt;T&gt;&#40;result: T[]&#41;: T"] --> N["&lt;number&gt; → number"]
+    G --> S["&lt;string&gt; → string"]
+    G --> B["&lt;boolean&gt; → boolean"]
+    N --> R["one implementation, typed return per call"]
+    S --> R
+    B --> R
+```
+
+```ts
+function getFirstResult<T>(result: T[]): T {
+    return result[0]!;                       // ! = non-null assertion
+}
+
+const firstNumber = getFirstResult<number>([200, 400, 500]);   // number
+const firstString = getFirstResult<string>(["Login", "Cart"]); // string
+
+class TestDataStorage<T> {
+    private items: T[] = [];
+    add(item: T): void { this.items.push(item); }
+    getFirst(): T { return this.items[0]!; }
+    getAll(): T[] { return this.items; }
+    count(): number { return this.items.length; }
+}
+
+const codes = new TestDataStorage<number>();
+codes.add(200); codes.add(404); codes.add(500);
+console.log(codes.getAll());   // [ 200, 404, 500 ]
+console.log(codes.count());    // 3
+// codes.add("500");           // compile error, expects a number
+```
+
+| File | Drills |
+|------|--------|
+| [`210_Generic.ts`](28_Typescript_Generic/210_Generic.ts) | Generic function `<T>` over `number[]`, `string[]`, `boolean[]` |
+| [`211_Generic_Class.ts`](28_Typescript_Generic/211_Generic_Class.ts) | Generic class `TestDataStorage<T>` with a private `T[]` |
+| [`212_API_Response.ts`](28_Typescript_Generic/212_API_Response.ts) | Generic return shape `{ statusCode: number; data: T }` |
+
+```bash
+npx tsx 28_Typescript_Generic/210_Generic.ts
+npx tsx 28_Typescript_Generic/211_Generic_Class.ts
+```
+
+---
+
+### 29 — TypeScript Access Modifiers
+
+**Concept:** TypeScript adds three visibility keywords to class members plus a `readonly` flag. `public` is reachable everywhere, `private` only inside the declaring class, `protected` inside the class **and** its subclasses, and `readonly` allows assignment in the constructor but blocks every write after that.
+
+**Why:** A page object should expose `login()` but never let a test reach in and rewrite `baseURL`. An API client should hide its `apiKey` completely while still letting a subclass read `timeout`. These keywords encode that boundary in the type system instead of a naming convention.
+
+**Q&A — why use this?**
+- **Q: When do I pick `protected` over `private`?** A: `protected` when a subclass legitimately needs it. In [`214_PageObjectModel.ts`](29_Typescript_PRIVATE_PUBLIC_PROTECTED/214_PageObjectModel.ts) `LoginPage` calls the inherited `this.navigate()`, which only works because `navigate` is `protected`, not `private`.
+- **Q: What does `readonly` replace?** A: A getter-only wrapper around a config field. `private readonly baseURL` gives immutability without writing an accessor.
+- **Q: What's the gotcha?** A: These are **compile-time** only. Unlike a JS `#field`, `private` is erased at runtime, so the value is still visible in the emitted object and readable from plain JavaScript. Use `#` when you need real runtime privacy.
+
+```mermaid
+flowchart TD
+    subgraph AC["class APIClient"]
+        P["public baseURL"]
+        PR["private apiKey"]
+        PT["protected timeout"]
+    end
+    AC --> SUB["class UserAPIClient extends APIClient"]
+    AC --> OUT["outside code"]
+    SUB -->|"✅ baseURL, timeout"| OK1["visible"]
+    SUB -.->|"❌ apiKey"| NO1["blocked"]
+    OUT -->|"✅ baseURL"| OK2["visible"]
+    OUT -.->|"❌ apiKey, timeout"| NO2["blocked"]
+```
+
+```ts
+class APIClient {
+    public baseURL: string;       // everywhere
+    private apiKey: string;       // this class only
+    protected timeout: number;    // this class + subclasses
+
+    constructor(baseURL: string, apiKey: string, timeout: number) {
+        this.baseURL = baseURL;
+        this.apiKey = apiKey;
+        this.timeout = timeout;
+    }
+
+    private getAuthHeader(): string { return "Bearer " + this.apiKey; }
+
+    public sendRequest(path: string): void {
+        console.log("GET " + this.baseURL + path);
+        console.log("Auth: " + this.getAuthHeader());
+    }
+}
+
+class UserAPIClient extends APIClient {
+    getUsers(): void {
+        console.log("Fetching users (timeout: " + this.timeout + "ms)"); // protected, allowed
+        // console.log(this.apiKey);   // compile error, private to APIClient
+    }
+}
+```
+
+| Modifier | Own class | Subclass | Outside | Reassignable |
+|----------|:---------:|:--------:|:-------:|:------------:|
+| `public` | ✅ | ✅ | ✅ | ✅ |
+| `protected` | ✅ | ✅ | ❌ | ✅ |
+| `private` | ✅ | ❌ | ❌ | ✅ |
+| `readonly` | ✅ | depends on visibility | depends | ❌ after constructor |
+| `#field` (JS) | ✅ | ❌ | ❌ | ✅, and private at runtime |
+
+| File | Drills |
+|------|--------|
+| [`213_PPP.ts`](29_Typescript_PRIVATE_PUBLIC_PROTECTED/213_PPP.ts) | All three modifiers on one `APIClient`, plus a private method |
+| [`214_PageObjectModel.ts`](29_Typescript_PRIVATE_PUBLIC_PROTECTED/214_PageObjectModel.ts) | `protected navigate()` reused by `LoginPage` |
+| [`215_Redaonly.ts`](29_Typescript_PRIVATE_PUBLIC_PROTECTED/215_Redaonly.ts) | `private readonly` Playwright config, frozen after construction |
+
+```bash
+npx tsx 29_Typescript_PRIVATE_PUBLIC_PROTECTED/213_PPP.ts
+npx tsx 29_Typescript_PRIVATE_PUBLIC_PROTECTED/214_PageObjectModel.ts
+npx tsx 29_Typescript_PRIVATE_PUBLIC_PROTECTED/215_Redaonly.ts
+```
+
+---
+
+### 31 — TypeScript Abstract Classes
+
+**Concept:** An `abstract class` is a base that cannot be instantiated. It mixes **abstract members** (a signature with no body, which every subclass must implement) with **concrete members** (real fields and methods the subclass inherits for free). It is the middle ground between an interface and a normal class.
+
+**Why:** Every test type shares the same lifecycle (`setup`, `execute`, `teardown`) but implements it differently. An abstract `BaseTest` forces all three to exist on `UITest`, `APITest`, and `DBTest`, while still holding the shared `testName` field and any shared helper in one place.
+
+**Q&A — why use this?**
+- **Q: When do I pick this over an `interface`?** A: When the base also carries **implementation**, a constructor, shared state, or a default method. An interface is pure contract and disappears at compile time; an abstract class emits a real class you can inherit from.
+- **Q: What does it replace?** A: A "base" class whose methods just `throw new Error("not implemented")` and only blow up at runtime. `abstract` moves that failure to compile time.
+- **Q: What's the gotcha?** A: `new BaseTest("x")` is a compile error, which is the whole point. And **every** abstract member must be implemented, including [`216_Abstract.ts`](31_Typescript_Abstract_Class/216_Abstract.ts)'s deliberately odd `abstract loan()`. Miss one and the subclass will not compile. Note the concrete `loan1()` next to it needs no implementation, since it already has a body.
+
+```mermaid
+flowchart TD
+    B["abstract class BaseTest"] --> AB["abstract setup&#40;&#41; / execute&#40;&#41; / teardown&#40;&#41; / loan&#40;&#41;"]
+    B --> CO["concrete: testName field + loan1&#40;&#41;"]
+    AB -->|"must implement all four"| U["class UITest extends BaseTest"]
+    CO -->|"inherited as-is"| U
+    B -.->|"new BaseTest&#40;&#41; ❌ compile error"| X["cannot instantiate"]
+```
+
+```ts
+abstract class BaseTest {
+    protected testName: string;
+    constructor(testName: string) { this.testName = testName; }
+
+    abstract setup(): void;      // no body, subclass must supply one
+    abstract execute(): void;
+    abstract teardown(): void;
+
+    loan1(): void { console.log("Hi"); }   // concrete, inherited as-is
+}
+
+class UITest extends BaseTest {
+    setup(): void    { console.log("  Setup: launch browser"); }
+    execute(): void  { console.log("  Execute: click buttons, fill forms"); }
+    teardown(): void { console.log("  Teardown: close browser"); }
+}
+
+const test = new UITest("Login Flow");
+test.setup(); test.execute(); test.teardown();
+// const base = new BaseTest("x");   // compile error, cannot instantiate an abstract class
+```
+
+> [`216_Abstract.ts`](31_Typescript_Abstract_Class/216_Abstract.ts) defines the classes but never instantiates `UITest`, so running it prints nothing. Add `new UITest("Login Flow").setup()` at the bottom to see it work.
+
+| Compare | Abstract class | Interface |
+|---------|:--------------:|:---------:|
+| Can hold implementation | ✅ | ❌ |
+| Can hold a constructor and state | ✅ | ❌ |
+| Exists at runtime | ✅ | ❌, erased |
+| A class can have many | ❌, one `extends` | ✅, many `implements` |
+
+```bash
+npx tsx 31_Typescript_Abstract_Class/216_Abstract.ts
+```
+
+---
+
 ## MCQ — Practice Questions
 
 **Concept:** [`MCQ/Array_MCQ.md`](MCQ/Array_MCQ.md) is a growing bank of short multiple-choice questions to self-test the concepts from each chapter, starting with arrays.
@@ -3451,6 +3724,11 @@ Concept explainers, generated on demand via the prompt template in [`IQ_Notes/RE
 | 24 | OOP Interview Practice | Constructors, default params, `return this` chaining, `super` chains | ✅ |
 | 25 | TypeScript | Annotations, primitives, arrays, `any` vs `unknown`, `void` vs `never` | ✅ |
 | 26 | TypeScript Abstractions | Interfaces, `readonly`, optional props, `extends`, `implements`, callable hooks, index signatures | ✅ |
+| 27 | TypeScript Enums | String enums as closed vocabularies, enum-as-type, `switch` dispatch | ✅ |
+| 28 | TypeScript Generics | Type parameters `<T>`, generic classes, generic return shapes, `!` assertion | ✅ |
+| 29 | TypeScript Access Modifiers | `public` / `private` / `protected`, `readonly`, compile-time vs `#` runtime privacy | ✅ |
+| 30 | TypeScript Override Decorator | The `@override` decorator | 🚧 |
+| 31 | TypeScript Abstract Classes | `abstract` members, concrete members, abstract class vs interface | ✅ |
 | — | MCQ Practice | Array multiple-choice bank (more coming) | 🚧 |
 | — | IQ_Notes | Standalone concept references via prompt template | 🚧 |
 
